@@ -1,5 +1,11 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
+export interface TemplateExercise {
+  name: string
+  sets: number
+  defaultReps: number
+}
+
 export type GenericRelationship = {
   foreignKeyName: string
   columns: string[]
@@ -84,6 +90,7 @@ export interface Database {
           description: string | null
           is_public: boolean
           program_type: string | null
+          exercises_data: TemplateExercise[]
           created_at: string
           updated_at: string
         }

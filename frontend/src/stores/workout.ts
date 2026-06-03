@@ -2,6 +2,8 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from './auth'
+import { getLastWeight, saveWorkoutWeights } from '@/composables/useLastWeights'
+import type { TemplateExercise } from '@/types/database'
 
 export interface WorkoutSet {
   id: string
@@ -66,6 +68,22 @@ export const useWorkoutStore = defineStore('workout', () => {
     workoutName.value = name
     startedAt.value = new Date()
     exercises.value = []
+    isActive.value = true
+  }
+
+  function loadFromTemplate(name: string, templateExercises: TemplateExercise[]) {
+    workoutName.value = name
+    startedAt.value = new Date()
+    exercises.value = templateExercises.map(ex => ({
+      id: uid(),
+      name: ex.name,
+      sets: Array.from({ length: ex.sets }, () => ({
+        id: uid(),
+        reps: ex.defaultReps,
+        weightKg: getLastWeight(ex.name),
+        completed: false,
+      })),
+    }))
     isActive.value = true
   }
 
@@ -182,6 +200,8 @@ export const useWorkoutStore = defineStore('workout', () => {
 
       if (updateErr) throw updateErr
 
+      saveWorkoutWeights(exercises.value)
+
       isActive.value = false
       exercises.value = []
       startedAt.value = null
@@ -201,6 +221,6 @@ export const useWorkoutStore = defineStore('workout', () => {
   return {
     isActive, workoutName, startedAt, exercises, saving,
     xpPreview, gamingPreview, completedSetCount,
-    start, addExercise, removeExercise, addSet, removeSet, toggleSet, complete, discard,
+    start, loadFromTemplate, addExercise, removeExercise, addSet, removeSet, toggleSet, complete, discard,
   }
 })

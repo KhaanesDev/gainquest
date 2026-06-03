@@ -9,31 +9,65 @@
       </div>
     </nav>
 
-    <!-- Start screen -->
-    <main v-if="!workout.isActive" class="main center">
-      <div class="start-card card">
-        <h2 class="start-title">Start a Workout</h2>
-        <p class="start-sub">Log your session and earn gaming time.</p>
-        <div class="field">
-          <label>Workout Name</label>
-          <input v-model="pendingName" class="input" placeholder="e.g. Push Day, Leg Day…" @keyup.enter="beginWorkout" />
+    <!-- ── Template Picker ─────────────────────────────────────────── -->
+    <main v-if="!workout.isActive" class="main">
+      <h2 class="page-title">Log Workout</h2>
+
+      <div v-if="loading" class="loading">Loading templates…</div>
+
+      <template v-else>
+        <div v-for="group in templateGroups" :key="group.type" class="group">
+          <div class="group-header">
+            <span class="group-badge" :style="{ background: groupColor(group.type) }">
+              {{ group.type }}
+            </span>
+          </div>
+          <div class="template-grid">
+            <button
+              v-for="t in group.templates"
+              :key="t.id"
+              class="template-card"
+              @click="startFromTemplate(t)"
+            >
+              <p class="t-name">{{ t.name }}</p>
+              <p class="t-exercises">
+                {{ t.exercises_data.slice(0, 3).map(e => e.name).join(' · ') }}
+                <span v-if="t.exercises_data.length > 3"> · +{{ t.exercises_data.length - 3 }} more</span>
+              </p>
+              <div class="t-meta">
+                <span>{{ t.exercises_data.length }} exercises</span>
+                <span>~{{ estTime(t.exercises_data) }} min</span>
+              </div>
+            </button>
+          </div>
         </div>
-        <button class="btn btn-primary start-btn" @click="beginWorkout">
-          Start Workout
-        </button>
-      </div>
+
+        <!-- Custom workout -->
+        <div class="group">
+          <div class="group-header">
+            <span class="group-badge custom">Custom</span>
+          </div>
+          <div class="template-grid">
+            <button class="template-card custom-card" @click="startCustom">
+              <p class="t-name">Start Empty</p>
+              <p class="t-exercises">Build your own workout from scratch</p>
+              <div class="t-meta"><span>You decide</span></div>
+            </button>
+          </div>
+        </div>
+      </template>
     </main>
 
-    <!-- Active workout -->
-    <main v-else class="main">
+    <!-- ── Active Workout ──────────────────────────────────────────── -->
+    <main v-else class="main workout-main">
       <div class="workout-header">
         <div>
           <input v-model="workout.workoutName" class="workout-name-input" />
           <p class="timer">{{ elapsed }}</p>
         </div>
-        <div class="header-preview">
-          <div class="preview-pill xp">⚡ {{ workout.xpPreview }} XP</div>
-          <div class="preview-pill gaming">🎮 {{ workout.gamingPreview }}m</div>
+        <div class="header-pills">
+          <div class="pill xp">⚡ {{ workout.xpPreview }} XP</div>
+          <div class="pill gaming">🎮 {{ workout.gamingPreview }}m</div>
         </div>
       </div>
 
@@ -44,17 +78,18 @@
           :exercise="ex"
           @remove="workout.removeExercise(ex.id)"
           @add-set="workout.addSet(ex.id)"
-          @remove-set="(sid) => workout.removeSet(ex.id, sid)"
-          @toggle-set="(sid) => workout.toggleSet(ex.id, sid)"
+          @remove-set="sid => workout.removeSet(ex.id, sid)"
+          @toggle-set="sid => workout.toggleSet(ex.id, sid)"
         />
-
         <div v-if="workout.exercises.length === 0" class="empty-hint">
-          Add your first exercise below to get started.
+          Tap "+ Add Exercise" to build your workout.
         </div>
       </div>
 
+      <p v-if="saveError" class="save-error">{{ saveError }}</p>
+
       <div class="workout-footer">
-        <button class="btn btn-secondary" @click="addExercise">+ Add Exercise</button>
+        <button class="btn btn-secondary" @click="workout.addExercise('')">+ Add Exercise</button>
         <button
           class="btn btn-complete"
           :disabled="workout.completedSetCount === 0 || workout.saving"
@@ -72,36 +107,82 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import ExerciseCard from '@/components/ExerciseCard.vue'
 import RewardModal from '@/components/RewardModal.vue'
 import { useWorkoutStore, type WorkoutReward } from '@/stores/workout'
 import { useTimer } from '@/composables/useTimer'
+import { supabase } from '@/lib/supabase'
+import type { Database } from '@/types/database'
+
+type Template = Database['public']['Tables']['workout_templates']['Row']
 
 const workout = useWorkoutStore()
 const router = useRouter()
 const { elapsed } = useTimer(workout.startedAt as any)
 
-const pendingName = ref('My Workout')
+const templates = ref<Template[]>([])
+const loading = ref(true)
 const reward = ref<WorkoutReward | null>(null)
-const error = ref('')
+const saveError = ref('')
 
-function beginWorkout() {
-  workout.start(pendingName.value || 'My Workout')
+const PROGRAM_ORDER = ['PPL', 'Bro Split', 'Upper / Lower', 'Full Body', '5×5 Strength', 'Quick']
+
+const templateGroups = computed(() => {
+  const map = new Map<string, Template[]>()
+  for (const t of templates.value) {
+    const key = t.program_type ?? 'Other'
+    if (!map.has(key)) map.set(key, [])
+    map.get(key)!.push(t)
+  }
+  return PROGRAM_ORDER
+    .filter(p => map.has(p))
+    .map(p => ({ type: p, templates: map.get(p)! }))
+})
+
+const GROUP_COLORS: Record<string, string> = {
+  'PPL':           '#7c3aed',
+  'Bro Split':     '#2563eb',
+  'Upper / Lower': '#ea580c',
+  'Full Body':     '#059669',
+  '5×5 Strength':  '#dc2626',
+  'Quick':         '#ca8a04',
 }
 
-function addExercise() {
-  workout.addExercise('')
+function groupColor(type: string) {
+  return GROUP_COLORS[type] ?? '#475569'
+}
+
+function estTime(exercises: Template['exercises_data']) {
+  const totalSets = exercises.reduce((sum, e) => sum + e.sets, 0)
+  return Math.round(totalSets * 2.5 / 5) * 5 || 20
+}
+
+onMounted(async () => {
+  const { data } = await supabase
+    .from('workout_templates')
+    .select('*')
+    .eq('is_public', true)
+    .order('program_type')
+  templates.value = data ?? []
+  loading.value = false
+})
+
+function startFromTemplate(t: Template) {
+  workout.loadFromTemplate(t.name, t.exercises_data)
+}
+
+function startCustom() {
+  workout.start('Custom Workout')
 }
 
 async function handleComplete() {
-  error.value = ''
+  saveError.value = ''
   try {
     reward.value = await workout.complete()
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to save workout'
-    console.error(e)
+    saveError.value = e instanceof Error ? e.message : 'Failed to save'
   }
 }
 
@@ -137,40 +218,98 @@ function confirmDiscard() {
 .nav-links a { color: var(--color-text-muted); }
 .nav-links a.router-link-active { color: var(--color-text); }
 
+/* ── Template Picker ─── */
 .main {
-  flex: 1;
   padding: 24px;
-  max-width: 720px;
+  max-width: 800px;
   margin: 0 auto;
   width: 100%;
+  padding-bottom: 40px;
+}
+
+.page-title { font-size: 22px; font-weight: 800; margin-bottom: 24px; }
+
+.loading { color: var(--color-text-muted); text-align: center; padding: 60px 0; }
+
+.group { margin-bottom: 28px; }
+
+.group-header { margin-bottom: 10px; }
+
+.group-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: white;
+}
+
+.group-badge.custom {
+  background: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+.template-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.template-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: inherit;
+}
+
+.template-card:hover {
+  border-color: var(--color-primary);
+  background: var(--color-surface-2);
+  transform: translateY(-1px);
+}
+
+.custom-card:hover {
+  border-color: var(--color-border);
+  border-style: dashed;
+}
+
+.t-name {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.t-exercises {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.4;
+}
+
+.t-meta {
+  display: flex;
+  gap: 12px;
+  margin-top: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Active Workout ─── */
+.workout-main {
   padding-bottom: 100px;
 }
 
-.main.center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding-bottom: 24px;
-}
-
-/* Start screen */
-.start-card {
-  width: 100%;
-  max-width: 440px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.start-title { font-size: 22px; font-weight: 800; }
-.start-sub { color: var(--color-text-muted); font-size: 14px; margin-top: -8px; }
-
-.field { display: flex; flex-direction: column; gap: 6px; }
-.field label { font-size: 12px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-
-.start-btn { width: 100%; padding: 13px; font-size: 15px; }
-
-/* Active workout */
 .workout-header {
   display: flex;
   align-items: flex-start;
@@ -184,34 +323,29 @@ function confirmDiscard() {
   background: none;
   border: none;
   color: var(--color-text);
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 800;
   font-family: inherit;
   outline: none;
   padding: 0;
+  max-width: 280px;
   width: 100%;
-  max-width: 300px;
 }
 
-.workout-name-input:hover,
 .workout-name-input:focus {
   border-bottom: 1px solid var(--color-border);
 }
 
 .timer {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
   margin-top: 4px;
 }
 
-.header-preview {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-}
+.header-pills { display: flex; gap: 8px; flex-shrink: 0; }
 
-.preview-pill {
+.pill {
   padding: 6px 12px;
   border-radius: 999px;
   font-size: 13px;
@@ -219,24 +353,19 @@ function confirmDiscard() {
   border: 1px solid;
 }
 
-.preview-pill.xp {
-  background: rgba(245, 158, 11, 0.1);
-  border-color: rgba(245, 158, 11, 0.3);
+.pill.xp {
+  background: rgba(245,158,11,0.1);
+  border-color: rgba(245,158,11,0.3);
   color: var(--color-xp);
 }
 
-.preview-pill.gaming {
-  background: rgba(16, 185, 129, 0.1);
-  border-color: rgba(16, 185, 129, 0.3);
+.pill.gaming {
+  background: rgba(16,185,129,0.1);
+  border-color: rgba(16,185,129,0.3);
   color: var(--color-accent);
 }
 
-.exercises {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 16px;
-}
+.exercises { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
 
 .empty-hint {
   text-align: center;
@@ -247,11 +376,16 @@ function confirmDiscard() {
   border-radius: var(--radius-lg);
 }
 
+.save-error {
+  color: #f87171;
+  font-size: 13px;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
 .workout-footer {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
+  bottom: 0; left: 0; right: 0;
   display: flex;
   gap: 10px;
   padding: 14px 20px;
@@ -271,20 +405,15 @@ function confirmDiscard() {
   border: none;
   cursor: pointer;
   transition: opacity 0.15s;
+  font-family: inherit;
 }
 
-.btn-complete:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.btn-complete:not(:disabled):hover {
-  opacity: 0.9;
-}
+.btn-complete:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-complete:not(:disabled):hover { opacity: 0.9; }
 
 .btn-discard {
   display: block;
-  margin: 8px auto 0;
+  margin: 10px auto 0;
   background: none;
   border: none;
   color: var(--color-text-muted);

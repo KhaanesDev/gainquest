@@ -37,15 +37,13 @@ async function fetchByBodyPart(bodyPart: string, limit = 15): Promise<Exercise[]
   if (cache.has(key)) return cache.get(key)!
 
   const res = await fetch(
-    `/api/exercises/bodyPart/${encodeURIComponent(bodyPart)}?limit=${limit}`,
-    {
-      headers: {
-        Authorization: `Bearer ${(await import('@/lib/supabase')).supabase.auth.getSession().then(r => r.data.session?.access_token ?? '')}`,
-      },
-    }
+    `/api/exercises/bodyPart/${encodeURIComponent(bodyPart)}?limit=${limit}`
   )
 
-  if (!res.ok) throw new Error(`ExerciseDB error: ${res.status}`)
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.error ?? `Error ${res.status}`)
+  }
   const data: Exercise[] = await res.json()
   cache.set(key, data)
   return data

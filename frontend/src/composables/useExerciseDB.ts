@@ -41,8 +41,9 @@ async function fetchByBodyPart(bodyPart: string, limit = 15): Promise<Exercise[]
   )
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}))
-    throw new Error(body.error ?? `Error ${res.status}`)
+    const text = await res.text().catch(() => '')
+    console.error('[ExerciseDB] HTTP', res.status, text)
+    throw new Error(`HTTP ${res.status}: ${text.slice(0, 120)}`)
   }
   const data: Exercise[] = await res.json()
   cache.set(key, data)

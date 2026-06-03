@@ -27,6 +27,14 @@ async function cachedFetch(url: string) {
   }
 
   const data = await res.json()
+
+  // ExerciseDB returns { error: true, message: '...' } on some errors with HTTP 200
+  if (!Array.isArray(data)) {
+    console.error('[ExerciseDB] Non-array response:', JSON.stringify(data).slice(0, 300))
+    const msg = (data as Record<string, unknown>)?.message ?? JSON.stringify(data)
+    throw Object.assign(new Error(`API error: ${msg}`), { status: 502 })
+  }
+
   cache.set(url, { data, ts: Date.now() })
   return data
 }

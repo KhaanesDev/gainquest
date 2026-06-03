@@ -39,15 +39,17 @@ async function cachedFetch(url: string) {
   return data
 }
 
-// Rewrite gifUrl to go through our proxy
+// Proxy gifUrl through backend if present
 function rewriteGifs(exercises: Record<string, unknown>[]) {
   return exercises.map(ex => ({
     ...ex,
-    gifUrl: `/api/exercises/gif?url=${encodeURIComponent(ex.gifUrl as string)}`,
+    gifUrl: ex.gifUrl
+      ? `/api/exercises/gif?url=${encodeURIComponent(ex.gifUrl as string)}`
+      : undefined,
   }))
 }
 
-exerciseRouter.get('/bodyPart/:target', async (req, res) => {
+exerciseRouter.get('/target/:target', async (req, res) => {
   const { target } = req.params
   const limit = Math.min(Number(req.query.limit) || 15, 50)
   const url = `${BASE}/exercises/target/${encodeURIComponent(target)}?limit=${limit}&offset=0`

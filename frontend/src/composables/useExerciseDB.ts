@@ -4,9 +4,12 @@ export interface Exercise {
   bodyPart: string
   target: string
   equipment: string
-  gifUrl: string
+  gifUrl?: string
   secondaryMuscles: string[]
   instructions: string[]
+  description?: string
+  difficulty?: 'beginner' | 'intermediate' | 'advanced' | string
+  category?: string
 }
 
 export interface MuscleInfo {
@@ -37,7 +40,7 @@ async function fetchByBodyPart(bodyPart: string, limit = 15): Promise<Exercise[]
   if (cache.has(key)) return cache.get(key)!
 
   const res = await fetch(
-    `/api/exercises/bodyPart/${encodeURIComponent(bodyPart)}?limit=${limit}`
+    `/api/exercises/target/${encodeURIComponent(bodyPart)}?limit=${limit}`
   )
 
   if (!res.ok) {

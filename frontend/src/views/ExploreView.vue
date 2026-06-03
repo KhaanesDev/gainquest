@@ -72,19 +72,22 @@
                 :class="{ 'in-workout': addedIds.has(ex.id) }"
                 @click="toggleExercise(ex)"
               >
-                <div class="gif-wrap">
-                  <img
-                    :src="ex.gifUrl"
-                    :alt="ex.name"
-                    loading="lazy"
-                    class="exercise-gif"
-                  />
-                </div>
                 <div class="exercise-info">
-                  <p class="exercise-name">{{ capitalize(ex.name) }}</p>
+                  <div class="exercise-header-row">
+                    <p class="exercise-name">{{ capitalize(ex.name) }}</p>
+                    <span v-if="ex.difficulty" class="diff-badge" :class="ex.difficulty">
+                      {{ ex.difficulty }}
+                    </span>
+                  </div>
+                  <p v-if="ex.description" class="exercise-desc">
+                    {{ ex.description.split('.')[0] }}.
+                  </p>
                   <div class="exercise-tags">
                     <span class="tag target">{{ capitalize(ex.target) }}</span>
                     <span class="tag equipment">{{ ex.equipment }}</span>
+                    <span v-for="m in ex.secondaryMuscles.slice(0,2)" :key="m" class="tag secondary">
+                      {{ m }}
+                    </span>
                   </div>
                 </div>
                 <div class="add-indicator">
@@ -304,25 +307,24 @@ watch(selected, () => {
 
 .exercise-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 10px;
 }
 
 .exercise-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  overflow: hidden;
   cursor: pointer;
   transition: all 0.15s;
   display: flex;
   flex-direction: column;
-  position: relative;
+  overflow: hidden;
 }
 
 .exercise-card:hover {
   border-color: var(--color-primary);
-  transform: translateY(-2px);
+  transform: translateY(-1px);
 }
 
 .exercise-card.in-workout {
@@ -330,32 +332,46 @@ watch(selected, () => {
   background: rgba(16, 185, 129, 0.05);
 }
 
-.gif-wrap {
-  width: 100%;
-  aspect-ratio: 1;
-  background: var(--color-surface-2);
-  overflow: hidden;
-}
-
-.exercise-gif {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
 .exercise-info {
-  padding: 10px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   flex: 1;
 }
 
+.exercise-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
 .exercise-name {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   line-height: 1.3;
+  flex: 1;
+}
+
+.diff-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-transform: capitalize;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.diff-badge.beginner     { background: rgba(16,185,129,0.15); color: var(--color-accent); }
+.diff-badge.intermediate { background: rgba(245,158,11,0.15); color: var(--color-xp); }
+.diff-badge.advanced     { background: rgba(239,68,68,0.15);  color: #f87171; }
+
+.exercise-desc {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
 }
 
 .exercise-tags {
@@ -385,8 +401,14 @@ watch(selected, () => {
   color: var(--color-text-muted);
 }
 
+.tag.secondary {
+  background: rgba(148,163,184,0.1);
+  border-color: rgba(148,163,184,0.2);
+  color: var(--color-text-muted);
+}
+
 .add-indicator {
-  padding: 6px 10px;
+  padding: 7px 14px;
   font-size: 11px;
   font-weight: 700;
   text-align: center;

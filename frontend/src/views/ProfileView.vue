@@ -5,6 +5,7 @@
       <div class="nav-links">
         <RouterLink to="/dashboard">Dashboard</RouterLink>
         <RouterLink to="/workout">Log Workout</RouterLink>
+        <RouterLink to="/explore">Explore</RouterLink>
         <RouterLink to="/profile">Profile</RouterLink>
       </div>
     </nav>

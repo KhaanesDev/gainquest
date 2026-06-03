@@ -18,19 +18,19 @@ export interface MuscleInfo {
 }
 
 export const MUSCLES: Record<string, MuscleInfo> = {
-  chest:        { label: 'Chest',       bodyPart: 'pectorals' },
-  shoulders:    { label: 'Shoulders',   bodyPart: 'delts' },
-  biceps:       { label: 'Biceps',      bodyPart: 'biceps' },
-  triceps:      { label: 'Triceps',     bodyPart: 'triceps' },
-  forearms:     { label: 'Forearms',    bodyPart: 'forearms' },
-  abs:          { label: 'Abs',         bodyPart: 'abs' },
-  traps:        { label: 'Trapezius',   bodyPart: 'traps' },
-  lats:         { label: 'Lats',        bodyPart: 'lats' },
-  'lower-back': { label: 'Lower Back',  bodyPart: 'spine' },
-  quads:        { label: 'Quads',       bodyPart: 'quads' },
-  glutes:       { label: 'Glutes',      bodyPart: 'glutes' },
-  hamstrings:   { label: 'Hamstrings',  bodyPart: 'hamstrings' },
-  calves:       { label: 'Calves',      bodyPart: 'calves' },
+  chest:        { label: 'Chest',       bodyPart: 'chest' },
+  shoulders:    { label: 'Shoulders',   bodyPart: 'shoulders' },
+  biceps:       { label: 'Biceps',      bodyPart: 'upper arms' },
+  triceps:      { label: 'Triceps',     bodyPart: 'upper arms' },
+  forearms:     { label: 'Forearms',    bodyPart: 'lower arms' },
+  abs:          { label: 'Abs',         bodyPart: 'waist' },
+  traps:        { label: 'Trapezius',   bodyPart: 'back' },
+  lats:         { label: 'Lats',        bodyPart: 'back' },
+  'lower-back': { label: 'Lower Back',  bodyPart: 'back' },
+  quads:        { label: 'Quads',       bodyPart: 'upper legs' },
+  glutes:       { label: 'Glutes',      bodyPart: 'upper legs' },
+  hamstrings:   { label: 'Hamstrings',  bodyPart: 'upper legs' },
+  calves:       { label: 'Calves',      bodyPart: 'lower legs' },
 }
 
 const cache = new Map<string, Exercise[]>()
@@ -40,7 +40,7 @@ async function fetchByBodyPart(bodyPart: string, limit = 15): Promise<Exercise[]
   if (cache.has(key)) return cache.get(key)!
 
   const res = await fetch(
-    `/api/exercises/target/${encodeURIComponent(bodyPart)}?limit=${limit}`
+    `/api/exercises/bodyPart/${encodeURIComponent(bodyPart)}?limit=${limit}`
   )
 
   if (!res.ok) {

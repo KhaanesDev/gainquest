@@ -72,6 +72,9 @@
                 :class="{ 'in-workout': addedIds.has(ex.id) }"
                 @click="toggleExercise(ex)"
               >
+                <div v-if="ex.gifUrl" class="gif-wrap">
+                  <img :src="ex.gifUrl" :alt="ex.name" loading="lazy" class="exercise-gif" />
+                </div>
                 <div class="exercise-info">
                   <div class="exercise-header-row">
                     <p class="exercise-name">{{ capitalize(ex.name) }}</p>
@@ -79,9 +82,6 @@
                       {{ ex.difficulty }}
                     </span>
                   </div>
-                  <p v-if="ex.description" class="exercise-desc">
-                    {{ ex.description.split('.')[0] }}.
-                  </p>
                   <div class="exercise-tags">
                     <span class="tag target">{{ capitalize(ex.target) }}</span>
                     <span class="tag equipment">{{ ex.equipment }}</span>
@@ -305,9 +305,23 @@ watch(selected, () => {
   margin-bottom: 12px;
 }
 
+.gif-wrap {
+  width: 100%;
+  aspect-ratio: 1;
+  background: var(--color-surface-2);
+  overflow: hidden;
+}
+
+.exercise-gif {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .exercise-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 10px;
 }
 

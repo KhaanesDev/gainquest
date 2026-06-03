@@ -88,6 +88,18 @@ exerciseRouter.get('/gif', async (req, res) => {
   }
 })
 
+// Fetch single exercise by id (includes gifUrl)
+exerciseRouter.get('/id/:id', async (req, res) => {
+  const { id } = req.params
+  try {
+    const data = await cachedFetch(`${BASE}/exercises/exercise/${id}`)
+    res.json(data)
+  } catch (e: unknown) {
+    const status = (e as { status?: number }).status ?? 500
+    res.status(status).json({ error: String(e) })
+  }
+})
+
 exerciseRouter.get('/bodyParts', async (_req, res) => {
   try {
     const data = await cachedFetch(`${BASE}/exercises/bodyPartList`)

@@ -72,9 +72,6 @@
                 :class="{ 'in-workout': addedIds.has(ex.id) }"
                 @click="toggleExercise(ex)"
               >
-                <div v-if="ex.gifUrl" class="gif-wrap">
-                  <img :src="ex.gifUrl" :alt="ex.name" loading="lazy" class="exercise-gif" />
-                </div>
                 <div class="exercise-info">
                   <div class="exercise-header-row">
                     <p class="exercise-name">{{ capitalize(ex.name) }}</p>
@@ -90,8 +87,19 @@
                     </span>
                   </div>
                 </div>
-                <div class="add-indicator">
-                  {{ addedIds.has(ex.id) ? '✓ Added' : '+ Add' }}
+                <div class="card-footer">
+                  <a
+                    :href="`https://www.youtube.com/results?search_query=how+to+${encodeURIComponent(ex.name)}+exercise+form`"
+                    target="_blank"
+                    rel="noopener"
+                    class="watch-btn"
+                    @click.stop
+                  >
+                    ▶ Watch
+                  </a>
+                  <div class="add-indicator" :class="{ added: addedIds.has(ex.id) }">
+                    {{ addedIds.has(ex.id) ? '✓ Added' : '+ Add' }}
+                  </div>
                 </div>
               </div>
             </div>
@@ -305,23 +313,9 @@ watch(selected, () => {
   margin-bottom: 12px;
 }
 
-.gif-wrap {
-  width: 100%;
-  aspect-ratio: 1;
-  background: var(--color-surface-2);
-  overflow: hidden;
-}
-
-.exercise-gif {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
 .exercise-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 10px;
 }
 
@@ -421,18 +415,41 @@ watch(selected, () => {
   color: var(--color-text-muted);
 }
 
-.add-indicator {
-  padding: 7px 14px;
+.card-footer {
+  display: flex;
+  border-top: 1px solid var(--color-border);
+}
+
+.watch-btn {
+  flex: 1;
+  padding: 8px 10px;
   font-size: 11px;
   font-weight: 700;
   text-align: center;
-  border-top: 1px solid var(--color-border);
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.08);
+  text-decoration: none;
+  border-right: 1px solid var(--color-border);
+  transition: background 0.15s;
+}
+
+.watch-btn:hover {
+  background: rgba(239, 68, 68, 0.16);
+}
+
+.add-indicator {
+  flex: 1;
+  padding: 8px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
   color: var(--color-text-muted);
   background: var(--color-surface-2);
   transition: all 0.15s;
+  cursor: pointer;
 }
 
-.exercise-card.in-workout .add-indicator {
+.add-indicator.added {
   color: var(--color-accent);
   background: rgba(16, 185, 129, 0.08);
 }

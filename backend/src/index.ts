@@ -23,4 +23,6 @@ app.use('/api/exercises', exerciseRouter)
 
 app.listen(PORT, () => {
   console.log(`GainQuest backend running on port ${PORT}`)
+  console.log('Routes: /health  /api/auth  /api/workouts  /api/profiles  /api/exercises')
+  console.log('ExerciseDB key loaded:', !!process.env.EXERCISEDB_KEY)
 })

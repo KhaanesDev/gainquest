@@ -47,10 +47,10 @@ function rewriteGifs(exercises: Record<string, unknown>[]) {
   }))
 }
 
-exerciseRouter.get('/bodyPart/:bodyPart', async (req, res) => {
-  const { bodyPart } = req.params
+exerciseRouter.get('/bodyPart/:target', async (req, res) => {
+  const { target } = req.params
   const limit = Math.min(Number(req.query.limit) || 15, 50)
-  const url = `${BASE}/exercises/bodyPart/${encodeURIComponent(bodyPart)}?limit=${limit}&offset=0`
+  const url = `${BASE}/exercises/target/${encodeURIComponent(target)}?limit=${limit}&offset=0`
 
   try {
     const data = await cachedFetch(url) as Record<string, unknown>[]

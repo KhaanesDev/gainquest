@@ -1,5 +1,13 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
 
+export type GenericRelationship = {
+  foreignKeyName: string
+  columns: string[]
+  isOneToOne: boolean
+  referencedRelation: string
+  referencedColumns: string[]
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -16,8 +24,26 @@ export interface Database {
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['profiles']['Row'], 'created_at' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['profiles']['Insert']>
+        Insert: {
+          id: string
+          username: string
+          level?: number
+          xp?: number
+          total_gaming_minutes?: number
+          available_gaming_minutes?: number
+          streak_days?: number
+          last_workout_date?: string | null
+        }
+        Update: {
+          username?: string
+          level?: number
+          xp?: number
+          total_gaming_minutes?: number
+          available_gaming_minutes?: number
+          streak_days?: number
+          last_workout_date?: string | null
+        }
+        Relationships: GenericRelationship[]
       }
       workout_sessions: {
         Row: {
@@ -32,8 +58,23 @@ export interface Database {
           notes: string | null
           created_at: string
         }
-        Insert: Omit<Database['public']['Tables']['workout_sessions']['Row'], 'id' | 'created_at'>
-        Update: Partial<Database['public']['Tables']['workout_sessions']['Insert']>
+        Insert: {
+          user_id: string
+          template_id?: string | null
+          name: string
+          started_at: string
+          completed_at?: string | null
+          xp_earned?: number
+          gaming_minutes_earned?: number
+          notes?: string | null
+        }
+        Update: {
+          completed_at?: string | null
+          xp_earned?: number
+          gaming_minutes_earned?: number
+          notes?: string | null
+        }
+        Relationships: GenericRelationship[]
       }
       workout_templates: {
         Row: {
@@ -46,8 +87,20 @@ export interface Database {
           created_at: string
           updated_at: string
         }
-        Insert: Omit<Database['public']['Tables']['workout_templates']['Row'], 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Database['public']['Tables']['workout_templates']['Insert']>
+        Insert: {
+          user_id?: string | null
+          name: string
+          description?: string | null
+          is_public?: boolean
+          program_type?: string | null
+        }
+        Update: {
+          name?: string
+          description?: string | null
+          is_public?: boolean
+          program_type?: string | null
+        }
+        Relationships: GenericRelationship[]
       }
       exercises: {
         Row: {
@@ -60,8 +113,23 @@ export interface Database {
           duration_seconds: number | null
           order_index: number
         }
-        Insert: Omit<Database['public']['Tables']['exercises']['Row'], 'id'>
-        Update: Partial<Database['public']['Tables']['exercises']['Insert']>
+        Insert: {
+          session_id: string
+          name: string
+          sets: number
+          reps?: number | null
+          weight_kg?: number | null
+          duration_seconds?: number | null
+          order_index?: number
+        }
+        Update: {
+          name?: string
+          sets?: number
+          reps?: number | null
+          weight_kg?: number | null
+          order_index?: number
+        }
+        Relationships: GenericRelationship[]
       }
     }
     Views: Record<string, never>

@@ -4,7 +4,7 @@ export const exerciseRouter = Router()
 
 const RAPIDAPI_KEY = process.env.EXERCISEDB_KEY ?? ''
 const BASE = 'https://exercisedb.p.rapidapi.com'
-const HEADERS = {
+const RAPIDAPI_HEADERS = {
   'x-rapidapi-host': 'exercisedb.p.rapidapi.com',
   'x-rapidapi-key': RAPIDAPI_KEY,
 }
@@ -17,7 +17,7 @@ async function cachedFetch(url: string) {
   if (hit && Date.now() - hit.ts < TTL) return hit.data
 
   console.log(`[ExerciseDB] GET ${url}`)
-  const res = await fetch(url, { headers: HEADERS })
+  const res = await fetch(url, { headers: RAPIDAPI_HEADERS })
   console.log(`[ExerciseDB] → ${res.status}`)
 
   if (!res.ok) {
@@ -31,21 +31,52 @@ async function cachedFetch(url: string) {
   return data
 }
 
+// Rewrite gifUrl to go through our proxy
+function rewriteGifs(exercises: Record<string, unknown>[]) {
+  return exercises.map(ex => ({
+    ...ex,
+    gifUrl: `/api/exercises/gif?url=${encodeURIComponent(ex.gifUrl as string)}`,
+  }))
+}
+
 exerciseRouter.get('/bodyPart/:bodyPart', async (req, res) => {
   const { bodyPart } = req.params
   const limit = Math.min(Number(req.query.limit) || 15, 50)
   const url = `${BASE}/exercises/bodyPart/${encodeURIComponent(bodyPart)}?limit=${limit}&offset=0`
 
   try {
-    const data = await cachedFetch(url)
-    res.json(data)
+    const data = await cachedFetch(url) as Record<string, unknown>[]
+    res.json(rewriteGifs(data))
   } catch (e: unknown) {
     const status = (e as { status?: number }).status ?? 500
     res.status(status).json({ error: String(e) })
   }
 })
 
-// Utility: list valid body parts (useful for debugging)
+// Proxy GIF images — browser <img> tags can't add RapidAPI headers
+exerciseRouter.get('/gif', async (req, res) => {
+  const url = decodeURIComponent((req.query.url as string) ?? '')
+  if (!url.startsWith('http')) {
+    res.status(400).json({ error: 'Invalid url' })
+    return
+  }
+
+  try {
+    const upstream = await fetch(url, { headers: RAPIDAPI_HEADERS })
+    if (!upstream.ok) {
+      res.status(upstream.status).end()
+      return
+    }
+    const contentType = upstream.headers.get('Content-Type') ?? 'image/gif'
+    res.set('Content-Type', contentType)
+    res.set('Cache-Control', 'public, max-age=86400')
+    const buffer = await upstream.arrayBuffer()
+    res.send(Buffer.from(buffer))
+  } catch (e: unknown) {
+    res.status(500).json({ error: String(e) })
+  }
+})
+
 exerciseRouter.get('/bodyParts', async (_req, res) => {
   try {
     const data = await cachedFetch(`${BASE}/exercises/bodyPartList`)

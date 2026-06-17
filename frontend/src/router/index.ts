@@ -21,6 +21,11 @@ const router = createRouter({
       meta: { requiresGuest: true },
     },
     {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: () => import('@/views/ResetPasswordView.vue'),
+    },
+    {
       path: '/dashboard',
       name: 'dashboard',
       component: () => import('@/views/DashboardView.vue'),
@@ -64,6 +69,11 @@ router.beforeEach(async (to) => {
   await auth.initialize()
 
   if (to.meta.requiresAuth && !auth.user) {
+    return { name: 'login' }
+  }
+  // Block access to protected routes if the email isn't confirmed
+  if (to.meta.requiresAuth && auth.user && !auth.isEmailConfirmed(auth.user)) {
+    await auth.signOut()
     return { name: 'login' }
   }
   if (to.meta.requiresGuest && auth.user) {

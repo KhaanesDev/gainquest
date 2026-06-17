@@ -133,15 +133,41 @@
         </div>
 
         <!-- Session log -->
-        <div class="card log-card">
-          <h3 class="chart-title">Session Log</h3>
-          <div class="log-list">
-            <div v-for="s in sessions.slice().reverse()" :key="s.id" class="log-row">
-              <div class="log-info">
-                <p class="log-name">{{ s.name }}</p>
-                <p class="log-date muted">{{ formatDate(s.completed_at!) }}</p>
+        <div class="recent">
+          <h3 class="section-title">Recent Workouts</h3>
+          <div class="session-list">
+            <div
+              v-for="s in sessions.slice().reverse()"
+              :key="s.id"
+              class="card session-card"
+              :class="{ expanded: expandedId === s.id }"
+              @click="toggleSession(s.id)"
+            >
+              <div class="session-row">
+                <div class="session-info">
+                  <p class="session-name">{{ s.name }}</p>
+                  <p class="session-date muted">{{ formatDate(s.completed_at) }}</p>
+                </div>
+                <div class="session-right">
+                  <span class="tag xp">⚡ +{{ s.xp_earned }}</span>
+                  <span class="chevron" :class="{ open: expandedId === s.id }">›</span>
+                </div>
               </div>
-              <span class="log-xp">+{{ s.xp_earned }} XP</span>
+
+              <div v-if="expandedId === s.id" class="exercise-list">
+                <div v-if="!s.exercises || s.exercises.length === 0" class="ex-loading muted">
+                  No exercises logged
+                </div>
+                <div v-else v-for="(ex, i) in sortedExercises(s.exercises)" :key="i" class="ex-row">
+                  <span class="ex-name">{{ ex.name }}</span>
+                  <span class="ex-detail muted">
+                    {{ ex.sets }} sets
+                    <template v-if="ex.reps"> · {{ ex.reps }} reps</template>
+                    <template v-if="ex.weight_kg"> · {{ ex.weight_kg }} kg</template>
+                    <template v-if="ex.duration_seconds"> · {{ formatDuration(ex.duration_seconds) }}</template>
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -155,12 +181,27 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 
-interface ExRow { name: string; weight_kg: number | null; reps: number | null }
+interface ExRow { name: string; sets: number; weight_kg: number | null; reps: number | null; duration_seconds: number | null; order_index: number | null }
 interface Session { id: string; name: string; completed_at: string; xp_earned: number; exercises: ExRow[] }
 
 const auth = useAuthStore()
 const sessions = ref<Session[]>([])
 const loading = ref(true)
+const expandedId = ref<string | null>(null)
+
+function toggleSession(id: string) {
+  expandedId.value = expandedId.value === id ? null : id
+}
+
+function sortedExercises(ex: ExRow[]) {
+  return [...ex].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))
+}
+
+function formatDuration(s: number) {
+  const m = Math.floor(s / 60)
+  const sec = s % 60
+  return sec > 0 ? `${m}:${sec.toString().padStart(2, '0')}` : `${m}m`
+}
 
 // ── Chart constants (shared) ──────────────────────────────────────────────────
 const CW = 600; const CH = 180
@@ -333,7 +374,7 @@ onMounted(async () => {
   if (!auth.user) return
   const { data } = await supabase
     .from('workout_sessions')
-    .select('id, name, completed_at, xp_earned, exercises(name, weight_kg, reps)')
+    .select('id, name, completed_at, xp_earned, exercises(name, sets, reps, weight_kg, duration_seconds, order_index)')
     .eq('user_id', auth.user.id)
     .not('completed_at', 'is', null)
     .order('completed_at', { ascending: true })
@@ -416,21 +457,41 @@ onMounted(async () => {
   font-family: inherit; font-variant-numeric: tabular-nums;
 }
 
-.log-card { padding: 0; overflow: hidden; }
-.chart-title { padding: 16px 16px 0; }
-.log-list { display: flex; flex-direction: column; margin-top: 12px; }
-.log-row {
+/* Recent sessions (expandable) */
+.section-title { font-size: 14px; font-weight: 700; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.recent { display: flex; flex-direction: column; }
+
+.session-list { display: flex; flex-direction: column; gap: 8px; }
+
+.session-card { padding: 0; cursor: pointer; transition: border-color 0.15s; overflow: hidden; }
+.session-card:hover { border-color: var(--color-primary); }
+.session-card.expanded { border-color: var(--color-primary); }
+
+.session-row {
   display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; padding: 10px 16px;
+  gap: 12px; padding: 14px 16px;
+}
+.session-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.chevron {
+  font-size: 18px; color: var(--color-text-muted);
+  transition: transform 0.2s; line-height: 1; display: inline-block;
+}
+.chevron.open { transform: rotate(90deg); }
+
+.session-name { font-weight: 600; font-size: 14px; }
+.session-date { font-size: 12px; margin-top: 2px; }
+
+.exercise-list {
   border-top: 1px solid var(--color-border);
-  transition: background 0.12s;
+  padding: 10px 16px 14px;
+  display: flex; flex-direction: column; gap: 6px;
 }
-.log-row:hover { background: var(--color-surface-2); }
-.log-name { font-size: 13px; font-weight: 600; }
-.log-date { font-size: 11px; margin-top: 2px; }
-.log-xp {
-  font-size: 12px; font-weight: 700; color: var(--color-xp);
-  background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2);
-  padding: 3px 9px; border-radius: 999px; white-space: nowrap; flex-shrink: 0;
-}
+.ex-loading { font-size: 13px; padding: 4px 0; }
+.ex-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.ex-name { font-size: 13px; font-weight: 600; }
+.ex-detail { font-size: 12px; }
+
+.tag { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; border: 1px solid; }
+.tag.xp { background: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.25); color: var(--color-xp); }
 </style>

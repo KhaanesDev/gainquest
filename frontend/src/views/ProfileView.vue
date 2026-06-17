@@ -108,12 +108,20 @@
           </p>
         </div>
       </section>
+
+      <!-- Account -->
+      <section class="section">
+        <h3 class="section-title">ACCOUNT</h3>
+        <p class="account-email muted">{{ auth.user?.email }}</p>
+        <button class="btn btn-logout" @click="handleSignOut">Sign out</button>
+      </section>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 import type { Database, TemplateExercise } from '@/types/database'
@@ -137,6 +145,13 @@ interface Editor {
 }
 
 const auth = useAuthStore()
+const router = useRouter()
+
+async function handleSignOut() {
+  await auth.signOut()
+  router.push('/login')
+}
+
 const profile = ref<Profile | null>(null)
 const templates = ref<WorkoutTemplate[]>([])
 const editor = ref<Editor | null>(null)
@@ -292,7 +307,7 @@ onMounted(async () => {
 }
 
 @media (max-width: 640px) {
-  .main { padding: 16px 16px calc(80px + env(safe-area-inset-bottom)); gap: 24px; }
+  .main { padding: 16px 16px calc(120px + env(safe-area-inset-bottom)); gap: 24px; }
 }
 
 .page-header {
@@ -310,6 +325,16 @@ onMounted(async () => {
 
 /* Section */
 .section { display: flex; flex-direction: column; gap: 12px; }
+
+.account-email { font-size: 13px; }
+.btn-logout {
+  width: 100%;
+  background: #0a0a0f;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  color: #f87171;
+  font-weight: 700;
+}
+.btn-logout:hover { background: #000; border-color: #f87171; }
 
 .section-header {
   display: flex;

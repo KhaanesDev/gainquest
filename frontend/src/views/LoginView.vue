@@ -4,7 +4,7 @@
       <h1 class="auth-title">GainQuest</h1>
       <p class="auth-subtitle">Level up your muscles.</p>
 
-      <form @submit.prevent="handleLogin" class="auth-form">
+      <form v-if="!resetMode" @submit.prevent="handleLogin" class="auth-form">
         <div class="field">
           <label>Email</label>
           <input v-model="email" type="email" class="input" placeholder="you@example.com" required />
@@ -17,9 +17,25 @@
         <button type="submit" class="btn btn-primary w-full" :disabled="loading">
           {{ loading ? 'Logging in...' : 'Log in' }}
         </button>
+        <button type="button" class="link-btn" @click="enterResetMode">Forgot password?</button>
       </form>
 
-      <p class="auth-footer">
+      <!-- Forgot password mode -->
+      <form v-else @submit.prevent="handleReset" class="auth-form">
+        <p class="reset-hint">Enter your email and we'll send you a reset link.</p>
+        <div class="field">
+          <label>Email</label>
+          <input v-model="email" type="email" class="input" placeholder="you@example.com" required />
+        </div>
+        <p v-if="error" class="error-msg">{{ error }}</p>
+        <p v-if="resetSent" class="success-msg">Reset link sent! Check your inbox.</p>
+        <button type="submit" class="btn btn-primary w-full" :disabled="loading || resetSent">
+          {{ loading ? 'Sending...' : 'Send reset link' }}
+        </button>
+        <button type="button" class="link-btn" @click="resetMode = false">Back to login</button>
+      </form>
+
+      <p v-if="!resetMode" class="auth-footer">
         No account? <RouterLink to="/register">Sign up</RouterLink>
       </p>
     </div>
@@ -38,6 +54,8 @@ const email = ref('')
 const password = ref('')
 const error = ref('')
 const loading = ref(false)
+const resetMode = ref(false)
+const resetSent = ref(false)
 
 async function handleLogin() {
   error.value = ''
@@ -47,6 +65,25 @@ async function handleLogin() {
     router.push('/dashboard')
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Login failed'
+  } finally {
+    loading.value = false
+  }
+}
+
+function enterResetMode() {
+  error.value = ''
+  resetSent.value = false
+  resetMode.value = true
+}
+
+async function handleReset() {
+  error.value = ''
+  loading.value = true
+  try {
+    await auth.resetPassword(email.value)
+    resetSent.value = true
+  } catch (e: unknown) {
+    error.value = e instanceof Error ? e.message : 'Could not send reset link'
   } finally {
     loading.value = false
   }
@@ -110,6 +147,29 @@ async function handleLogin() {
   color: #f87171;
   font-size: 13px;
 }
+
+.success-msg {
+  color: var(--color-accent);
+  font-size: 13px;
+}
+
+.reset-hint {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-muted);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: center;
+  padding: 4px;
+  transition: color 0.15s;
+}
+.link-btn:hover { color: var(--color-primary); }
 
 .auth-footer {
   text-align: center;

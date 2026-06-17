@@ -182,7 +182,7 @@ onMounted(async () => {
 }
 
 @media (max-width: 640px) {
-  .main { padding: 16px 16px calc(80px + env(safe-area-inset-bottom)); }
+  .main { padding: 16px 16px var(--tab-space); }
 }
 
 .page-header {

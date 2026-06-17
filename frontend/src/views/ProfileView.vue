@@ -82,7 +82,16 @@
           <p v-if="saveError" class="save-error">⚠ {{ saveError }}</p>
           <div class="editor-footer">
             <button class="btn btn-secondary" @click="editor = null; saveError = ''">Cancel</button>
-            <button class="btn btn-primary" :disabled="saving || !editor.name.trim()" @click="saveTemplate">
+            <button
+              v-if="editor.id"
+              class="btn btn-secondary"
+              :disabled="saving || !editor.name.trim() || templates.length >= 10"
+              @click="saveTemplate(true)"
+              title="Save these changes as a new template, keeping the original"
+            >
+              Save as copy
+            </button>
+            <button class="btn btn-primary" :disabled="saving || !editor.name.trim()" @click="saveTemplate(false)">
               {{ saving ? 'Saving…' : editor.id ? 'Update Template' : 'Save Template' }}
             </button>
           </div>
@@ -225,7 +234,7 @@ async function loadTemplates() {
   templates.value = data ?? []
 }
 
-async function saveTemplate() {
+async function saveTemplate(asCopy = false) {
   if (!auth.user || !editor.value || !editor.value.name.trim()) return
   saving.value = true
   saveError.value = ''
@@ -234,16 +243,23 @@ async function saveTemplate() {
       .filter(e => e.name.trim())
       .map(({ id: _id, ...e }) => e)
 
+    // Update in place only when editing an existing template and not copying.
+    const isUpdate = editor.value.id && !asCopy
+
     let error
-    if (editor.value.id) {
+    if (isUpdate) {
       ;({ error } = await supabase
         .from('workout_templates')
         .update({ name: editor.value.name.trim(), exercises_data })
-        .eq('id', editor.value.id))
+        .eq('id', editor.value.id!))
     } else {
+      // New template, or a copy of an edited one saved to the user
+      const name = asCopy && !/copy/i.test(editor.value.name)
+        ? `${editor.value.name.trim()} (Copy)`
+        : editor.value.name.trim()
       ;({ error } = await supabase.from('workout_templates').insert({
         user_id: auth.user.id,
-        name: editor.value.name.trim(),
+        name,
         exercises_data,
         is_public: false,
       }))
@@ -307,7 +323,7 @@ onMounted(async () => {
 }
 
 @media (max-width: 640px) {
-  .main { padding: 16px 16px calc(120px + env(safe-area-inset-bottom)); gap: 24px; }
+  .main { padding: 16px 16px var(--tab-space); gap: 24px; }
 }
 
 .page-header {

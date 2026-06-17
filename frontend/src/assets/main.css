@@ -17,6 +17,8 @@
   --color-text-muted: #94a3b8;
   --radius: 8px;
   --radius-lg: 12px;
+  /* Breathing room so fixed bottom tab bar never clips list content on mobile */
+  --tab-space: calc(88px + env(safe-area-inset-bottom));
 }
 
 html {

@@ -309,7 +309,7 @@ onMounted(async () => {
 }
 
 @media (max-width: 640px) {
-  .main { padding: 16px 16px calc(80px + env(safe-area-inset-bottom)); }
+  .main { padding: 16px 16px var(--tab-space); }
   .stats-grid { grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .stat-card { padding: 12px 8px; }
   .stat-value { font-size: 22px; }

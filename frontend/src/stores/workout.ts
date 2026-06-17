@@ -129,7 +129,15 @@ export const useWorkoutStore = defineStore('workout', () => {
     const ex = exercises.value.find(e => e.id === exerciseId)
     if (!ex) return
     const prev = ex.sets[ex.sets.length - 1]
-    ex.sets.push(makeSet(type, prev?.reps ?? null, prev?.weightKg ?? null, prev?.durationSeconds ?? 60))
+    const newSet = makeSet(type, prev?.reps ?? null, prev?.weightKg ?? null, prev?.durationSeconds ?? 60)
+    if (type === 'warmup') {
+      // Warmups belong at the top, after any existing warmups
+      const firstWorking = ex.sets.findIndex(s => s.type === 'working')
+      if (firstWorking === -1) ex.sets.push(newSet)
+      else ex.sets.splice(firstWorking, 0, newSet)
+    } else {
+      ex.sets.push(newSet)
+    }
   }
 
   function removeSet(exerciseId: string, setId: string) {

@@ -15,7 +15,6 @@
         <!-- Column labels -->
         <div class="col-labels" :class="exercise.type">
           <span></span>
-          <span></span>
           <template v-if="exercise.type === 'reps'">
             <span>REPS</span>
             <span>KG</span>
@@ -30,18 +29,15 @@
 
             <!-- Set row -->
             <div class="set-row"
-              :class="[{ completed: set.completed, dragging: dragIndex === i, 'drag-over': dragOver === i }, set.type, exercise.type]"
+              :class="[{ completed: set.completed, 'drag-over': dragActive && dragOver === i }, set.type, exercise.type]"
             >
-              <span
-                class="drag-handle"
-                @pointerdown.prevent="startDrag($event, i)"
-              >⠿</span>
               <button
                 class="type-badge"
-                :class="set.type"
+                :class="[set.type, { dragging: dragActive && dragIndex === i }]"
                 :disabled="set.completed"
-                @click="toggleSetType(set)"
-                :title="set.type === 'warmup' ? 'Switch to working set' : 'Switch to warmup'"
+                @pointerdown="startDrag($event, i)"
+                @click="onBadgeClick(set)"
+                title="Tap to switch warmup/working · drag to reorder"
               >{{ setBadge(set, i) }}</button>
 
               <!-- Reps mode -->
@@ -199,38 +195,67 @@ const workout = useWorkoutStore()
 const showDemo = ref(false)
 const setsBodyEl = useTemplateRef<HTMLElement>('setsBodyEl')
 
-// ── Drag to reorder ───────────────────────────────────────────────────────────
+// ── Drag to reorder (via the set number badge) ─────────────────────────────────
 const dragIndex = ref<number | null>(null)
 const dragOver = ref<number | null>(null)
+const dragActive = ref(false)
+let dragStartY = 0
+let suppressClick = false
 
-function startDrag(_e: PointerEvent, i: number) {
+function startDrag(e: PointerEvent, i: number) {
+  suppressClick = false
+  dragStartY = e.clientY
+  dragActive.value = false
   dragIndex.value = i
+  dragOver.value = i
   window.addEventListener('pointermove', onPointerMove)
   window.addEventListener('pointerup', onPointerUp, { once: true })
   window.addEventListener('pointercancel', onPointerUp, { once: true })
 }
 
 function onPointerMove(e: PointerEvent) {
-  if (dragIndex.value === null || !setsBodyEl.value) return
+  if (dragIndex.value === null) return
+  // Only enter drag mode once the pointer has moved past a small threshold,
+  // so a plain tap still toggles warmup/working.
+  if (!dragActive.value) {
+    if (Math.abs(e.clientY - dragStartY) < 6) return
+    dragActive.value = true
+  }
+  if (!setsBodyEl.value) return
   const rows = setsBodyEl.value.querySelectorAll<HTMLElement>('.set-row')
   for (let i = 0; i < rows.length; i++) {
     const rect = rows[i].getBoundingClientRect()
     if (e.clientY >= rect.top && e.clientY < rect.bottom) {
       dragOver.value = i
-      return
+      break
     }
   }
 }
 
 function onPointerUp() {
   window.removeEventListener('pointermove', onPointerMove)
-  if (dragIndex.value !== null && dragOver.value !== null && dragIndex.value !== dragOver.value) {
+  if (
+    dragActive.value &&
+    dragIndex.value !== null &&
+    dragOver.value !== null &&
+    dragIndex.value !== dragOver.value
+  ) {
     const sets = props.exercise.sets
     const [moved] = sets.splice(dragIndex.value, 1)
     sets.splice(dragOver.value, 0, moved)
+    suppressClick = true // swallow the click that follows a drag
   }
+  dragActive.value = false
   dragIndex.value = null
   dragOver.value = null
+}
+
+function onBadgeClick(set: WorkoutSet) {
+  if (suppressClick) {
+    suppressClick = false
+    return
+  }
+  toggleSetType(set)
 }
 
 const exerciseDone = computed(() =>
@@ -457,8 +482,6 @@ onBeforeUnmount(() => {
   Object.values(setIntervals).forEach(clearInterval)
   Object.values(restIntervals).forEach(clearInterval)
   window.removeEventListener('pointermove', onPointerMove)
-  window.removeEventListener('pointerup', onPointerUp)
-  window.removeEventListener('pointercancel', onPointerUp)
 })
 </script>
 
@@ -571,8 +594,8 @@ onBeforeUnmount(() => {
   letter-spacing: 0.06em;
   flex-shrink: 0;
 }
-.col-labels.reps  { grid-template-columns: 18px 40px 1fr 1.5fr 36px; }
-.col-labels.timer { grid-template-columns: 18px 40px 1fr 40px 36px; }
+.col-labels.reps  { grid-template-columns: 40px 1fr 1.2fr 36px; }
+.col-labels.timer { grid-template-columns: 40px 1fr 40px 36px; }
 .span-timer { grid-column: 2 / 4; }
 
 /* Scrollable set list */
@@ -594,29 +617,10 @@ onBeforeUnmount(() => {
   border-radius: var(--radius);
   transition: background 0.12s;
 }
-.set-row.reps  { grid-template-columns: 18px 40px 1fr 1.5fr 36px; }
-.set-row.timer { grid-template-columns: 18px 40px 1fr 40px 36px; }
+.set-row.reps  { grid-template-columns: 40px 1fr 1.2fr 36px; }
+.set-row.timer { grid-template-columns: 40px 1fr 40px 36px; }
 .set-row.completed { background: rgba(16,185,129,0.06); }
 .set-row.warmup.completed { background: rgba(148,163,184,0.08); }
-
-/* Drag handle */
-.drag-handle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  color: var(--color-text-muted);
-  cursor: grab;
-  touch-action: none;
-  opacity: 0.4;
-  user-select: none;
-  transition: opacity 0.15s;
-}
-.drag-handle:hover { opacity: 1; }
-.set-row.dragging { opacity: 0.35; }
-.set-row.drag-over {
-  border-top: 2px solid var(--color-primary);
-}
 
 /* Type badge */
 .type-badge {
@@ -626,9 +630,20 @@ onBeforeUnmount(() => {
   font-size: 11px;
   font-weight: 800;
   font-family: inherit;
-  cursor: pointer;
+  cursor: grab;
+  touch-action: none;
   transition: all 0.12s;
   display: flex; align-items: center; justify-content: center;
+}
+.type-badge.dragging {
+  cursor: grabbing;
+  opacity: 0.5;
+  transform: scale(1.1);
+}
+.set-row.drag-over {
+  outline: 2px dashed var(--color-primary);
+  outline-offset: -2px;
+  border-radius: var(--radius);
 }
 .type-badge.working {
   background: rgba(124,58,237,0.1);

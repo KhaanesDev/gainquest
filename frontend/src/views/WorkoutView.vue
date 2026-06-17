@@ -1,5 +1,5 @@
 <template>
-  <div class="layout">
+  <div class="layout" :class="{ 'workout-active': workout.isActive }">
     <nav class="navbar">
       <RouterLink to="/dashboard" class="nav-brand">GainQuest</RouterLink>
       <div class="nav-links">
@@ -99,6 +99,11 @@
         >
           {{ workout.saving ? 'Saving…' : 'Complete Workout' }}
         </button>
+        <button
+          class="btn btn-save-template"
+          :disabled="workout.exercises.length === 0 || savingTemplate"
+          @click="saveAsTemplate"
+        >{{ templateSaved ? '✓ Saved' : savingTemplate ? 'Saving…' : 'Save as template' }}</button>
         <button class="btn btn-discard" @click="confirmDiscard">Discard</button>
       </div>
     </main>
@@ -118,13 +123,55 @@ import { useWorkoutStore, type WorkoutReward } from '@/stores/workout'
 import { useTimer } from '@/composables/useTimer'
 import { WORKOUT_CATEGORIES, type WorkoutCategory } from '@/data/workoutCategories'
 import { getMusclesForExercise } from '@/data/exerciseMuscleMap'
+import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/stores/auth'
 import type { TemplateExercise } from '@/types/database'
 
 const workout = useWorkoutStore()
+const auth = useAuthStore()
 const { startedAt } = storeToRefs(workout)
 const router = useRouter()
 const route = useRoute()
 const { elapsed } = useTimer(startedAt)
+
+const savingTemplate = ref(false)
+const templateSaved = ref(false)
+
+async function saveAsTemplate() {
+  if (!auth.user || workout.exercises.length === 0) return
+  const name = prompt('Save this workout as a template. Name:', workout.workoutName || 'My Template')
+  if (!name || !name.trim()) return
+  savingTemplate.value = true
+  saveError.value = ''
+  try {
+    const exercises_data: TemplateExercise[] = workout.exercises
+      .filter(e => e.name.trim())
+      .map(e => {
+        const working = e.sets.find(s => s.type === 'working')
+        return {
+          name: e.name.trim(),
+          sets: e.sets.length,
+          warmupSets: e.sets.filter(s => s.type === 'warmup').length,
+          defaultReps: working?.reps ?? 10,
+          type: e.type,
+          defaultDuration: working?.durationSeconds ?? 60,
+        }
+      })
+    const { error } = await supabase.from('workout_templates').insert({
+      user_id: auth.user.id,
+      name: name.trim(),
+      exercises_data,
+      is_public: false,
+    })
+    if (error) throw error
+    templateSaved.value = true
+    setTimeout(() => { templateSaved.value = false }, 2500)
+  } catch (e: unknown) {
+    saveError.value = e instanceof Error ? e.message : 'Could not save template'
+  } finally {
+    savingTemplate.value = false
+  }
+}
 
 onMounted(async () => {
   const templateId = route.query.template as string | undefined
@@ -191,6 +238,9 @@ function confirmDiscard() {
 
 <style scoped>
 .layout { min-height: 100vh; display: flex; flex-direction: column; }
+
+/* Active workout: lock the viewport so only the exercise list scrolls */
+.layout.workout-active { height: 100vh; height: 100dvh; overflow: hidden; }
 
 .navbar {
   display: flex;
@@ -299,14 +349,25 @@ function confirmDiscard() {
 }
 
 /* ── Active Workout ─── */
-.workout-main { padding-bottom: 100px; }
+.workout-main {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px 0;
+  max-width: 900px;
+  margin: 0 auto;
+  width: 100%;
+  overflow: hidden;
+}
 
 .workout-header {
+  flex-shrink: 0;
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
   flex-wrap: wrap;
 }
 
@@ -353,6 +414,7 @@ function confirmDiscard() {
   display: flex;
   align-items: center;
   gap: 6px;
+  flex-shrink: 0;
   overflow-x: auto;
   padding: 0 0 10px;
   scrollbar-width: none;
@@ -386,7 +448,16 @@ function confirmDiscard() {
   margin: 0 2px;
 }
 
-.exercises { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
+.exercises {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 12px;
+}
 
 .empty-hint {
   text-align: center;
@@ -405,27 +476,35 @@ function confirmDiscard() {
 }
 
 .workout-footer {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
+  flex-shrink: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  padding: 14px 20px;
-  padding-bottom: max(14px, env(safe-area-inset-bottom));
+  padding: 12px 0;
   background: var(--color-bg);
   border-top: 1px solid var(--color-border);
-  z-index: 10;
 }
 
-.workout-footer .btn-secondary { flex: 1; min-width: 120px; }
-.workout-footer .btn-complete  { flex: 2; min-width: 160px; }
-.workout-footer .btn-discard   { flex: 1; min-width: 100px; }
+.workout-footer .btn-secondary     { flex: 1; min-width: 120px; }
+.workout-footer .btn-complete      { flex: 2; min-width: 160px; }
+.workout-footer .btn-save-template { flex: 1; min-width: 120px; }
+.workout-footer .btn-discard       { flex: 1; min-width: 100px; }
+
+.btn-save-template {
+  background: var(--color-surface-2);
+  border: 1px solid rgba(124, 58, 237, 0.4);
+  color: var(--color-primary);
+  font-size: 13px;
+}
+.btn-save-template:hover:not(:disabled) { background: rgba(124, 58, 237, 0.12); }
+.btn-save-template:disabled { opacity: 0.45; cursor: not-allowed; }
 
 @media (max-width: 640px) {
-  .main { padding: 16px 16px calc(90px + env(safe-area-inset-bottom)); }
+  .main:not(.workout-main) { padding: 16px 16px var(--tab-space); }
   .category-grid { grid-template-columns: 1fr; }
-  .workout-main { padding-bottom: 130px; }
-  .workout-footer { padding-bottom: calc(max(14px, env(safe-area-inset-bottom)) + 56px); }
+  .workout-main { padding: 14px 16px 0; }
+  /* Reserve room for the global bottom tab bar so the footer sits above it */
+  .layout.workout-active { padding-bottom: calc(56px + env(safe-area-inset-bottom)); }
 }
 
 .btn-complete {

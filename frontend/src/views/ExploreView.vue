@@ -235,7 +235,7 @@ watch(selected, () => {
 
 @media (max-width: 700px) {
   .explorer-layout { grid-template-columns: 1fr; }
-  .main { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .main { padding-bottom: var(--tab-space); }
   .picker-panel { position: static; }
 }
 

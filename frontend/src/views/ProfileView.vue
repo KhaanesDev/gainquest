@@ -107,6 +107,7 @@
                 <p class="template-exercises muted">{{ summarize(t) }}</p>
               </div>
               <div class="template-actions">
+                <button class="btn-sm use" @click="useTemplate(t.id)">Use</button>
                 <button class="btn-sm" @click="startEdit(t)">Edit</button>
                 <button class="btn-sm danger" @click="confirmDelete(t.id)">✕</button>
               </div>
@@ -159,6 +160,10 @@ const router = useRouter()
 async function handleSignOut() {
   await auth.signOut()
   router.push('/login')
+}
+
+function useTemplate(id: string) {
+  router.push({ path: '/workout', query: { template: id } })
 }
 
 const profile = ref<Profile | null>(null)
@@ -569,6 +574,12 @@ onMounted(async () => {
 }
 .btn-sm:hover { border-color: var(--color-primary); color: var(--color-primary); }
 .btn-sm.danger:hover { border-color: #f87171; color: #f87171; }
+.btn-sm.use {
+  background: rgba(124, 58, 237, 0.12);
+  border-color: rgba(124, 58, 237, 0.4);
+  color: var(--color-primary);
+}
+.btn-sm.use:hover { background: rgba(124, 58, 237, 0.22); }
 
 .loading, .empty { font-size: 13px; text-align: center; padding: 24px; }
 .muted { color: var(--color-text-muted); }

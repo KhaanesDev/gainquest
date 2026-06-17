@@ -1,79 +1,44 @@
 <template>
-  <div class="exercise-card">
-    <div class="exercise-header">
-      <input
-        v-model="exercise.name"
-        class="exercise-name-input"
-        placeholder="Exercise name (e.g. Bench Press)"
-      />
-      <button class="btn-icon danger" @click="emit('remove')" title="Remove exercise">✕</button>
+  <div class="exercise-card" :class="{ done: isDone }" @click="open = true">
+    <div class="card-main">
+      <p class="ex-name">{{ exercise.name || 'Unnamed Exercise' }}</p>
+      <p class="ex-meta muted">
+        <template v-if="warmupCount > 0">W{{ warmupCount }} + {{ workingCount }} sets</template>
+        <template v-else>{{ exercise.sets.length }} sets</template>
+        <span v-if="completedCount > 0"> · {{ completedCount }} done</span>
+      </p>
     </div>
-
-    <div class="sets-table">
-      <div class="sets-header">
-        <span>SET</span>
-        <span>REPS</span>
-        <span>KG</span>
-        <span></span>
+    <div class="card-right">
+      <div class="progress-pill" :class="{ complete: isDone }">
+        {{ completedCount }}/{{ exercise.sets.length }}
       </div>
-
-      <div
-        v-for="(set, i) in exercise.sets"
-        :key="set.id"
-        class="set-row"
-        :class="{ completed: set.completed }"
-      >
-        <span class="set-num">{{ i + 1 }}</span>
-        <input
-          v-model.number="set.reps"
-          type="number"
-          min="1"
-          max="999"
-          class="set-input"
-          placeholder="—"
-          :disabled="set.completed"
-        />
-        <input
-          v-model.number="set.weightKg"
-          type="number"
-          min="0"
-          max="999"
-          step="0.5"
-          class="set-input"
-          placeholder="BW"
-          :disabled="set.completed"
-        />
-        <div class="set-actions">
-          <button
-            class="btn-check"
-            :class="{ active: set.completed }"
-            @click="emit('toggle-set', set.id)"
-            title="Mark complete"
-          >✓</button>
-          <button
-            v-if="exercise.sets.length > 1"
-            class="btn-icon small"
-            @click="emit('remove-set', set.id)"
-            title="Remove set"
-          >✕</button>
-        </div>
-      </div>
+      <span class="chevron">›</span>
     </div>
-
-    <button class="btn-add-set" @click="emit('add-set')">+ Add Set</button>
   </div>
+
+  <ExerciseOverlay
+    v-if="open"
+    :exercise="exercise"
+    @close="open = false"
+    @remove="emit('remove')"
+    @complete-workout="emit('complete-workout')"
+  />
 </template>
 
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import type { WorkoutExercise } from '@/stores/workout'
+import ExerciseOverlay from './ExerciseOverlay.vue'
 
-defineProps<{ exercise: WorkoutExercise }>()
-const emit = defineEmits<{
-  remove: []
-  'add-set': []
-  'remove-set': [setId: string]
-  'toggle-set': [setId: string]
-}>()
+const props = defineProps<{ exercise: WorkoutExercise }>()
+const emit = defineEmits<{ remove: []; 'complete-workout': [] }>()
+
+const open = ref(false)
+
+const completedCount = computed(() => props.exercise.sets.filter(s => s.completed).length)
+const warmupCount = computed(() => props.exercise.sets.filter(s => s.type === 'warmup').length)
+const workingCount = computed(() => props.exercise.sets.filter(s => s.type === 'working').length)
+const isDone = computed(() => props.exercise.sets.length > 0 && completedCount.value === props.exercise.sets.length)
 </script>
 
 <style scoped>
@@ -81,196 +46,76 @@ const emit = defineEmits<{
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  padding: 16px;
+  padding: 14px 16px;
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  user-select: none;
 }
 
-.exercise-header {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.exercise-name-input {
-  flex: 1;
+.exercise-card:hover {
+  border-color: var(--color-primary);
   background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 8px 12px;
-  color: var(--color-text);
+}
+.exercise-card.done {
+  border-color: rgba(16,185,129,0.35);
+  background: rgba(16,185,129,0.04);
+}
+
+.card-main { flex: 1; min-width: 0; }
+
+.ex-name {
   font-size: 15px;
-  font-weight: 600;
-  font-family: inherit;
-  outline: none;
-}
-
-.exercise-name-input:focus {
-  border-color: var(--color-primary);
-}
-
-.exercise-name-input::placeholder {
-  color: var(--color-text-muted);
-  font-weight: 400;
-}
-
-.sets-table {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.sets-header {
-  display: grid;
-  grid-template-columns: 32px 1fr 1fr 64px;
-  gap: 8px;
-  padding: 0 4px;
-  font-size: 11px;
   font-weight: 700;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.set-row {
-  display: grid;
-  grid-template-columns: 32px 1fr 1fr 64px;
-  gap: 8px;
-  align-items: center;
-  padding: 6px 4px;
-  border-radius: var(--radius);
-  transition: background 0.15s;
-}
-
-.set-row.completed {
-  background: rgba(16, 185, 129, 0.08);
-}
-
-.set-num {
-  text-align: center;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-text-muted);
-}
-
-.set-row.completed .set-num {
-  color: var(--color-accent);
-}
-
-.set-input {
-  background: var(--color-surface-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius);
-  padding: 7px 8px;
-  color: var(--color-text);
-  font-size: 14px;
-  font-family: inherit;
-  text-align: center;
-  outline: none;
-  width: 100%;
-  transition: border-color 0.15s;
-}
-
-.set-input:focus {
-  border-color: var(--color-primary);
-}
-
-.set-input:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.set-input::placeholder {
-  color: var(--color-text-muted);
-}
-
-/* remove number input arrows */
-.set-input::-webkit-inner-spin-button,
-.set-input::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-}
-
-.set-actions {
-  display: flex;
-  gap: 4px;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.btn-check {
-  width: 32px;
-  height: 32px;
-  border-radius: var(--radius);
-  border: 2px solid var(--color-border);
-  background: transparent;
-  color: var(--color-text-muted);
-  font-size: 14px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.btn-check:hover {
-  border-color: var(--color-accent);
-  color: var(--color-accent);
-}
-
-.btn-check.active {
-  background: var(--color-accent);
-  border-color: var(--color-accent);
-  color: white;
-}
-
-.btn-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius);
-  border: none;
-  background: transparent;
-  color: var(--color-text-muted);
+.ex-meta {
   font-size: 12px;
+  margin-top: 3px;
+}
+
+.muted { color: var(--color-text-muted); }
+
+.card-right {
   display: flex;
   align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.15s;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-.btn-icon:hover {
+.progress-pill {
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--color-border);
   background: var(--color-surface-2);
-  color: var(--color-text);
-}
-
-.btn-icon.danger:hover {
-  background: rgba(248, 113, 113, 0.1);
-  color: #f87171;
-}
-
-.btn-icon.small {
-  width: 22px;
-  height: 22px;
-  font-size: 10px;
-}
-
-.btn-add-set {
-  align-self: flex-start;
-  background: none;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius);
-  padding: 6px 14px;
   color: var(--color-text-muted);
-  font-size: 13px;
-  font-family: inherit;
-  cursor: pointer;
   transition: all 0.15s;
 }
 
-.btn-add-set:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
+.progress-pill.complete {
+  background: rgba(16,185,129,0.12);
+  border-color: rgba(16,185,129,0.3);
+  color: var(--color-accent);
+  animation: pill-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes pill-pop {
+  0%   { transform: scale(0.75); opacity: 0.4; }
+  60%  { transform: scale(1.18); }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+.chevron {
+  font-size: 20px;
+  color: var(--color-text-muted);
+  line-height: 1;
 }
 </style>

@@ -7,7 +7,7 @@
       <form @submit.prevent="handleRegister" class="auth-form">
         <div class="field">
           <label>Username</label>
-          <input v-model="username" type="text" class="input" placeholder="GamerGains99" required />
+          <input v-model="username" type="text" class="input" placeholder="IronViking99" required />
         </div>
         <div class="field">
           <label>Email</label>

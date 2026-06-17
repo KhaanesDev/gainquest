@@ -3,45 +3,59 @@ import { ref, computed } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from './auth'
 import { getLastWeight, saveWorkoutWeights } from '@/composables/useLastWeights'
+import { getMusclesForExercise } from '@/data/exerciseMuscleMap'
 import type { TemplateExercise } from '@/types/database'
 
 export interface WorkoutSet {
   id: string
+  type: 'warmup' | 'working'
   reps: number | null
   weightKg: number | null
+  durationSeconds: number | null
+  restAfterSeconds: number | null
   completed: boolean
 }
 
 export interface WorkoutExercise {
   id: string
   name: string
+  type: 'reps' | 'timer'
   sets: WorkoutSet[]
 }
 
 export interface WorkoutReward {
   xp: number
-  gamingMinutes: number
   leveledUp: boolean
   newLevel: number
   oldLevel: number
+  musclesTrained: string[]
 }
 
 let _id = 0
 function uid() { return `tmp-${++_id}` }
+
+function calcSetXP(set: WorkoutSet, exType: 'reps' | 'timer'): number {
+  if (!set.completed) return 0
+  let raw = 0
+  if (exType === 'timer') {
+    raw = 5 + Math.floor((set.durationSeconds ?? 0) / 4)
+  } else if ((set.reps ?? 0) > 0) {
+    raw = 10 + (set.reps ?? 0) + Math.floor((set.weightKg ?? 0) / 10)
+  }
+  if (raw === 0) return 0
+  return set.type === 'warmup' ? Math.max(1, Math.round(raw * 0.25)) : raw
+}
 
 function calcXP(exercises: WorkoutExercise[]): number {
   let xp = 0
   let totalCompleted = 0
   for (const ex of exercises) {
     for (const set of ex.sets) {
-      if (set.completed && (set.reps ?? 0) > 0) {
-        // 10 base + 1 per rep + 1 per 10kg lifted
-        xp += 10 + (set.reps ?? 0) + Math.floor((set.weightKg ?? 0) / 10)
-        totalCompleted++
-      }
+      const setXp = calcSetXP(set, ex.type)
+      if (setXp > 0) { xp += setXp; totalCompleted++ }
     }
   }
-  if (totalCompleted > 0) xp += 100 // session completion bonus
+  if (totalCompleted > 0) xp += 100
   return xp
 }
 
@@ -59,31 +73,42 @@ export const useWorkoutStore = defineStore('workout', () => {
   const saving = ref(false)
 
   const xpPreview = computed(() => calcXP(exercises.value))
-  const gamingPreview = computed(() => Math.max(30, Math.floor(xpPreview.value / 5)))
   const completedSetCount = computed(() =>
     exercises.value.flatMap(e => e.sets).filter(s => s.completed).length
   )
 
+  function makeSet(type: 'warmup' | 'working', reps: number | null, weightKg: number | null, durationSeconds: number): WorkoutSet {
+    return { id: uid(), type, reps, weightKg, durationSeconds, restAfterSeconds: null, completed: false }
+  }
+
   function start(name = 'My Workout') {
     workoutName.value = name
-    startedAt.value = new Date()
+    startedAt.value = null
     exercises.value = []
     isActive.value = true
   }
 
+  function markStarted() {
+    if (!startedAt.value) startedAt.value = new Date()
+  }
+
   function loadFromTemplate(name: string, templateExercises: TemplateExercise[]) {
     workoutName.value = name
-    startedAt.value = new Date()
-    exercises.value = templateExercises.map(ex => ({
-      id: uid(),
-      name: ex.name,
-      sets: Array.from({ length: ex.sets }, () => ({
+    startedAt.value = null
+    exercises.value = templateExercises.map(ex => {
+      const warmup = ex.warmupSets ?? 0
+      return {
         id: uid(),
-        reps: ex.defaultReps,
-        weightKg: getLastWeight(ex.name),
-        completed: false,
-      })),
-    }))
+        name: ex.name,
+        type: (ex.type ?? 'reps') as 'reps' | 'timer',
+        sets: Array.from({ length: ex.sets }, (_, i) => makeSet(
+          i < warmup ? 'warmup' : 'working',
+          ex.type === 'timer' ? null : ex.defaultReps,
+          ex.type === 'timer' ? null : getLastWeight(ex.name),
+          ex.defaultDuration ?? 60,
+        )),
+      }
+    })
     isActive.value = true
   }
 
@@ -91,7 +116,8 @@ export const useWorkoutStore = defineStore('workout', () => {
     exercises.value.push({
       id: uid(),
       name,
-      sets: [{ id: uid(), reps: null, weightKg: null, completed: false }],
+      type: 'reps',
+      sets: [makeSet('working', null, null, 60)],
     })
   }
 
@@ -99,16 +125,11 @@ export const useWorkoutStore = defineStore('workout', () => {
     exercises.value = exercises.value.filter(e => e.id !== id)
   }
 
-  function addSet(exerciseId: string) {
+  function addSet(exerciseId: string, type: 'warmup' | 'working' = 'working') {
     const ex = exercises.value.find(e => e.id === exerciseId)
     if (!ex) return
     const prev = ex.sets[ex.sets.length - 1]
-    ex.sets.push({
-      id: uid(),
-      reps: prev?.reps ?? null,
-      weightKg: prev?.weightKg ?? null,
-      completed: false,
-    })
+    ex.sets.push(makeSet(type, prev?.reps ?? null, prev?.weightKg ?? null, prev?.durationSeconds ?? 60))
   }
 
   function removeSet(exerciseId: string, setId: string) {
@@ -120,7 +141,63 @@ export const useWorkoutStore = defineStore('workout', () => {
   function toggleSet(exerciseId: string, setId: string) {
     const ex = exercises.value.find(e => e.id === exerciseId)
     const set = ex?.sets.find(s => s.id === setId)
-    if (set) set.completed = !set.completed
+    if (!set) return
+    set.completed = !set.completed
+    if (set.completed) markStarted()
+  }
+
+  function bulkAdjustSets(delta: number) {
+    for (const ex of exercises.value) {
+      if (delta > 0) {
+        const prev = ex.sets[ex.sets.length - 1]
+        for (let i = 0; i < delta; i++) {
+          ex.sets.push(makeSet('working', prev?.reps ?? null, prev?.weightKg ?? null, prev?.durationSeconds ?? 60))
+        }
+      } else {
+        const toRemove = Math.min(-delta, ex.sets.filter(s => !s.completed).length - 1)
+        for (let i = 0; i < toRemove; i++) {
+          const idx = ex.sets.findLastIndex(s => !s.completed)
+          if (idx >= 0) ex.sets.splice(idx, 1)
+        }
+      }
+    }
+  }
+
+  function bulkAdjustWeight(delta: number) {
+    for (const ex of exercises.value) {
+      for (const s of ex.sets) {
+        if (!s.completed) {
+          const next = Math.round(((s.weightKg ?? 0) + delta) * 10) / 10
+          s.weightKg = next <= 0 ? null : next
+        }
+      }
+    }
+  }
+
+  function bulkSetTemplate(sets: number, reps: number) {
+    for (const ex of exercises.value) {
+      for (const s of ex.sets) {
+        if (s.type === 'working' && !s.completed) s.reps = reps
+      }
+      const completedWorking = ex.sets.filter(s => s.type === 'working' && s.completed).length
+      const targetUncompleted = Math.max(0, sets - completedWorking)
+      const currentUncompleted = ex.sets.filter(s => s.type === 'working' && !s.completed).length
+
+      if (currentUncompleted < targetUncompleted) {
+        const prev = ex.sets[ex.sets.length - 1]
+        for (let i = currentUncompleted; i < targetUncompleted; i++) {
+          ex.sets.push(makeSet('working', reps, prev?.weightKg ?? null, prev?.durationSeconds ?? 60))
+        }
+      } else if (currentUncompleted > targetUncompleted) {
+        let toRemove = currentUncompleted - targetUncompleted
+        for (let i = ex.sets.length - 1; i >= 0 && toRemove > 0; i--) {
+          if (ex.sets[i].type === 'working' && !ex.sets[i].completed) {
+            ex.sets.splice(i, 1)
+            toRemove--
+          }
+        }
+      }
+    }
   }
 
   async function complete(): Promise<WorkoutReward> {
@@ -129,22 +206,23 @@ export const useWorkoutStore = defineStore('workout', () => {
 
     try {
       const xp = xpPreview.value
-      const minutes = gamingPreview.value
 
       const { data: session, error: sessionErr } = await supabase
         .from('workout_sessions')
         .insert({
           user_id: auth.user.id,
           name: workoutName.value,
-          started_at: startedAt.value!.toISOString(),
+          started_at: (startedAt.value ?? new Date()).toISOString(),
           completed_at: new Date().toISOString(),
           xp_earned: xp,
-          gaming_minutes_earned: minutes,
         })
         .select()
         .single()
 
-      if (sessionErr) throw sessionErr
+      if (sessionErr) {
+        console.error('workout_sessions insert failed:', sessionErr)
+        throw sessionErr
+      }
 
       const exerciseRows = exercises.value
         .filter(ex => ex.name.trim() && ex.sets.some(s => s.completed))
@@ -155,8 +233,9 @@ export const useWorkoutStore = defineStore('workout', () => {
             session_id: session.id,
             name: ex.name.trim(),
             sets: done.length,
-            reps: last?.reps ?? null,
-            weight_kg: last?.weightKg ?? null,
+            reps: ex.type === 'timer' ? null : (last?.reps ?? null),
+            weight_kg: ex.type === 'timer' ? null : (last?.weightKg ?? null),
+            duration_seconds: ex.type === 'timer' ? (last?.durationSeconds ?? null) : null,
             order_index: i,
           }
         })
@@ -191,8 +270,6 @@ export const useWorkoutStore = defineStore('workout', () => {
         .update({
           xp: newXP,
           level: newLevel,
-          available_gaming_minutes: profile.available_gaming_minutes + minutes,
-          total_gaming_minutes: profile.total_gaming_minutes + minutes,
           streak_days: newStreak,
           last_workout_date: today,
         })
@@ -200,16 +277,33 @@ export const useWorkoutStore = defineStore('workout', () => {
 
       if (updateErr) throw updateErr
 
+      const musclesTrained = [...new Set(
+        exercises.value
+          .filter(ex => ex.name.trim() && ex.sets.some(s => s.completed))
+          .flatMap(ex => getMusclesForExercise(ex.name))
+      )]
+
       saveWorkoutWeights(exercises.value)
 
       isActive.value = false
       exercises.value = []
       startedAt.value = null
 
-      return { xp, gamingMinutes: minutes, leveledUp: newLevel > oldLevel, newLevel, oldLevel }
+      return { xp, leveledUp: newLevel > oldLevel, newLevel, oldLevel, musclesTrained }
     } finally {
       saving.value = false
     }
+  }
+
+  async function loadFromTemplateId(templateId: string) {
+    const { data, error } = await supabase
+      .from('workout_templates')
+      .select('*')
+      .eq('id', templateId)
+      .single()
+
+    if (error || !data) throw new Error('Template not found')
+    loadFromTemplate(data.name, (data.exercises_data ?? []) as TemplateExercise[])
   }
 
   function discard() {
@@ -220,7 +314,7 @@ export const useWorkoutStore = defineStore('workout', () => {
 
   return {
     isActive, workoutName, startedAt, exercises, saving,
-    xpPreview, gamingPreview, completedSetCount,
-    start, loadFromTemplate, addExercise, removeExercise, addSet, removeSet, toggleSet, complete, discard,
+    xpPreview, completedSetCount,
+    start, markStarted, loadFromTemplate, loadFromTemplateId, addExercise, removeExercise, addSet, removeSet, toggleSet, bulkAdjustSets, bulkAdjustWeight, bulkSetTemplate, complete, discard,
   }
 })

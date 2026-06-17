@@ -3,7 +3,10 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export interface TemplateExercise {
   name: string
   sets: number
+  warmupSets?: number
   defaultReps: number
+  type?: 'reps' | 'timer'
+  defaultDuration?: number
 }
 
 export type GenericRelationship = {
@@ -23,10 +26,9 @@ export interface Database {
           username: string
           level: number
           xp: number
-          total_gaming_minutes: number
-          available_gaming_minutes: number
           streak_days: number
           last_workout_date: string | null
+          weekly_schedule: Record<string, string>
           created_at: string
           updated_at: string
         }
@@ -35,19 +37,17 @@ export interface Database {
           username: string
           level?: number
           xp?: number
-          total_gaming_minutes?: number
-          available_gaming_minutes?: number
           streak_days?: number
           last_workout_date?: string | null
+          weekly_schedule?: Record<string, string>
         }
         Update: {
           username?: string
           level?: number
           xp?: number
-          total_gaming_minutes?: number
-          available_gaming_minutes?: number
           streak_days?: number
           last_workout_date?: string | null
+          weekly_schedule?: Record<string, string>
         }
         Relationships: GenericRelationship[]
       }
@@ -60,7 +60,6 @@ export interface Database {
           started_at: string
           completed_at: string | null
           xp_earned: number
-          gaming_minutes_earned: number
           notes: string | null
           created_at: string
         }
@@ -71,13 +70,11 @@ export interface Database {
           started_at: string
           completed_at?: string | null
           xp_earned?: number
-          gaming_minutes_earned?: number
           notes?: string | null
         }
         Update: {
           completed_at?: string | null
           xp_earned?: number
-          gaming_minutes_earned?: number
           notes?: string | null
         }
         Relationships: GenericRelationship[]
@@ -100,12 +97,14 @@ export interface Database {
           description?: string | null
           is_public?: boolean
           program_type?: string | null
+          exercises_data?: TemplateExercise[]
         }
         Update: {
           name?: string
           description?: string | null
           is_public?: boolean
           program_type?: string | null
+          exercises_data?: TemplateExercise[]
         }
         Relationships: GenericRelationship[]
       }

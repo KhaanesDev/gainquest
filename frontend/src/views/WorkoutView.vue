@@ -4,72 +4,75 @@
       <RouterLink to="/dashboard" class="nav-brand">GainQuest</RouterLink>
       <div class="nav-links">
         <RouterLink to="/dashboard">Dashboard</RouterLink>
-        <RouterLink to="/workout">Log Workout</RouterLink>
+        <RouterLink to="/workout">Start Workout</RouterLink>
         <RouterLink to="/explore">Explore</RouterLink>
+        <RouterLink to="/stats">Progress</RouterLink>
         <RouterLink to="/profile">Profile</RouterLink>
       </div>
     </nav>
 
-    <!-- ── Template Picker ─────────────────────────────────────────── -->
+    <!-- ── Category Picker ────────────────────────────────────────── -->
     <main v-if="!workout.isActive" class="main">
-      <h2 class="page-title">Log Workout</h2>
+      <div class="page-header">
+        <h2 class="page-title">Start Workout</h2>
+        <p class="page-sub">What are you training today?</p>
+      </div>
 
-      <div v-if="loading" class="loading">Loading templates…</div>
+      <div class="category-grid">
+        <button
+          v-for="cat in WORKOUT_CATEGORIES"
+          :key="cat.id"
+          class="category-card"
+          :style="{ '--cat-color': cat.color }"
+          @click="startFromCategory(cat)"
+        >
+          <div class="card-top">
+            <div class="card-info">
+              <p class="cat-name">{{ cat.name }}</p>
+              <p class="cat-meta">{{ cat.exercises.length }} exercises · ~{{ estTime(cat.exercises) }} min</p>
+            </div>
+            <MuscleDisplay :highlighted="cat.muscles" />
+          </div>
+          <p class="cat-exercises">
+            {{ cat.exercises.slice(0, 3).map(e => e.name).join(' · ') }}
+            <span v-if="cat.exercises.length > 3"> · +{{ cat.exercises.length - 3 }} more</span>
+          </p>
+          <p class="cat-muscles">
+            {{ cat.muscles.map(m => m.replace('-', ' ')).join('  ·  ') }}
+          </p>
+        </button>
 
-      <template v-else>
-        <div v-for="group in templateGroups" :key="group.type" class="group">
-          <div class="group-header">
-            <span class="group-badge" :style="{ background: groupColor(group.type) }">
-              {{ group.type }}
-            </span>
+        <button class="category-card custom-card" @click="startCustom">
+          <div class="card-top">
+            <div class="card-info">
+              <p class="cat-name">Custom</p>
+              <p class="cat-meta">Your choice</p>
+            </div>
           </div>
-          <div class="template-grid">
-            <button
-              v-for="t in group.templates"
-              :key="t.id"
-              class="template-card"
-              @click="startFromTemplate(t)"
-            >
-              <p class="t-name">{{ t.name }}</p>
-              <p class="t-exercises">
-                {{ t.exercises_data.slice(0, 3).map(e => e.name).join(' · ') }}
-                <span v-if="t.exercises_data.length > 3"> · +{{ t.exercises_data.length - 3 }} more</span>
-              </p>
-              <div class="t-meta">
-                <span>{{ t.exercises_data.length }} exercises</span>
-                <span>~{{ estTime(t.exercises_data) }} min</span>
-              </div>
-            </button>
-          </div>
-        </div>
-
-        <!-- Custom workout -->
-        <div class="group">
-          <div class="group-header">
-            <span class="group-badge custom">Custom</span>
-          </div>
-          <div class="template-grid">
-            <button class="template-card custom-card" @click="startCustom">
-              <p class="t-name">Start Empty</p>
-              <p class="t-exercises">Build your own workout from scratch</p>
-              <div class="t-meta"><span>You decide</span></div>
-            </button>
-          </div>
-        </div>
-      </template>
+          <p class="cat-exercises">Start empty and add exercises as you go</p>
+        </button>
+      </div>
     </main>
 
     <!-- ── Active Workout ──────────────────────────────────────────── -->
     <main v-else class="main workout-main">
       <div class="workout-header">
-        <div>
+        <div class="header-left">
           <input v-model="workout.workoutName" class="workout-name-input" />
           <p class="timer">{{ elapsed }}</p>
-        </div>
-        <div class="header-pills">
           <div class="pill xp">⚡ {{ workout.xpPreview }} XP</div>
-          <div class="pill gaming">🎮 {{ workout.gamingPreview }}m</div>
         </div>
+        <MuscleDisplay :heatmap="muscleHeatmap" size="sm" />
+      </div>
+
+      <div class="quick-actions">
+        <button class="qa-btn" @click="workout.bulkSetTemplate(3, 10)">3×10</button>
+        <button class="qa-btn" @click="workout.bulkSetTemplate(4, 8)">4×8</button>
+        <button class="qa-btn" @click="workout.bulkSetTemplate(5, 5)">5×5</button>
+        <button class="qa-btn" @click="workout.bulkSetTemplate(3, 12)">3×12</button>
+        <div class="qa-divider" />
+        <button class="qa-btn" @click="workout.bulkAdjustSets(1)">+1 set</button>
+        <button class="qa-btn" @click="workout.bulkAdjustSets(-1)">−1 set</button>
       </div>
 
       <div class="exercises">
@@ -78,9 +81,7 @@
           :key="ex.id"
           :exercise="ex"
           @remove="workout.removeExercise(ex.id)"
-          @add-set="workout.addSet(ex.id)"
-          @remove-set="sid => workout.removeSet(ex.id, sid)"
-          @toggle-set="sid => workout.toggleSet(ex.id, sid)"
+          @complete-workout="handleComplete"
         />
         <div v-if="workout.exercises.length === 0" class="empty-hint">
           Tap "+ Add Exercise" to build your workout.
@@ -98,9 +99,8 @@
         >
           {{ workout.saving ? 'Saving…' : 'Complete Workout' }}
         </button>
+        <button class="btn btn-discard" @click="confirmDiscard">Discard</button>
       </div>
-
-      <button class="btn-discard" @click="confirmDiscard">Discard workout</button>
     </main>
 
     <RewardModal v-if="reward" :reward="reward" @close="handleRewardClose" />
@@ -109,69 +109,54 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useRouter, useRoute } from 'vue-router'
 import ExerciseCard from '@/components/ExerciseCard.vue'
+import MuscleDisplay from '@/components/MuscleDisplay.vue'
 import RewardModal from '@/components/RewardModal.vue'
 import { useWorkoutStore, type WorkoutReward } from '@/stores/workout'
 import { useTimer } from '@/composables/useTimer'
-import { supabase } from '@/lib/supabase'
-import type { Database } from '@/types/database'
-
-type Template = Database['public']['Tables']['workout_templates']['Row']
+import { WORKOUT_CATEGORIES, type WorkoutCategory } from '@/data/workoutCategories'
+import { getMusclesForExercise } from '@/data/exerciseMuscleMap'
+import type { TemplateExercise } from '@/types/database'
 
 const workout = useWorkoutStore()
+const { startedAt } = storeToRefs(workout)
 const router = useRouter()
-const { elapsed } = useTimer(workout.startedAt as any)
+const route = useRoute()
+const { elapsed } = useTimer(startedAt)
 
-const templates = ref<Template[]>([])
-const loading = ref(true)
+onMounted(async () => {
+  const templateId = route.query.template as string | undefined
+  if (templateId && !workout.isActive) {
+    try {
+      await workout.loadFromTemplateId(templateId)
+    } catch {
+      // Fall through to normal category picker
+    }
+  }
+})
+
+const muscleHeatmap = computed(() => {
+  const counts: Record<string, number> = {}
+  for (const ex of workout.exercises) {
+    for (const m of getMusclesForExercise(ex.name)) {
+      counts[m] = (counts[m] ?? 0) + 1
+    }
+  }
+  return counts
+})
+
 const reward = ref<WorkoutReward | null>(null)
 const saveError = ref('')
 
-const PROGRAM_ORDER = ['PPL', 'Bro Split', 'Upper / Lower', 'Full Body', '5×5 Strength', 'Quick']
-
-const templateGroups = computed(() => {
-  const map = new Map<string, Template[]>()
-  for (const t of templates.value) {
-    const key = t.program_type ?? 'Other'
-    if (!map.has(key)) map.set(key, [])
-    map.get(key)!.push(t)
-  }
-  return PROGRAM_ORDER
-    .filter(p => map.has(p))
-    .map(p => ({ type: p, templates: map.get(p)! }))
-})
-
-const GROUP_COLORS: Record<string, string> = {
-  'PPL':           '#7c3aed',
-  'Bro Split':     '#2563eb',
-  'Upper / Lower': '#ea580c',
-  'Full Body':     '#059669',
-  '5×5 Strength':  '#dc2626',
-  'Quick':         '#ca8a04',
-}
-
-function groupColor(type: string) {
-  return GROUP_COLORS[type] ?? '#475569'
-}
-
-function estTime(exercises: Template['exercises_data']) {
+function estTime(exercises: TemplateExercise[]) {
   const totalSets = exercises.reduce((sum, e) => sum + e.sets, 0)
   return Math.round(totalSets * 2.5 / 5) * 5 || 20
 }
 
-onMounted(async () => {
-  const { data } = await supabase
-    .from('workout_templates')
-    .select('*')
-    .eq('is_public', true)
-    .order('program_type')
-  templates.value = data ?? []
-  loading.value = false
-})
-
-function startFromTemplate(t: Template) {
-  workout.loadFromTemplate(t.name, t.exercises_data)
+function startFromCategory(cat: WorkoutCategory) {
+  workout.loadFromTemplate(cat.name, cat.exercises)
 }
 
 function startCustom() {
@@ -183,7 +168,12 @@ async function handleComplete() {
   try {
     reward.value = await workout.complete()
   } catch (e: unknown) {
-    saveError.value = e instanceof Error ? e.message : 'Failed to save'
+    console.error('Complete workout error:', e)
+    const msg =
+      e instanceof Error ? e.message
+      : (e && typeof e === 'object' && 'message' in e) ? String((e as { message: unknown }).message)
+      : 'Failed to save'
+    saveError.value = msg
   }
 }
 
@@ -219,48 +209,29 @@ function confirmDiscard() {
 .nav-links a { color: var(--color-text-muted); }
 .nav-links a.router-link-active { color: var(--color-text); }
 
-/* ── Template Picker ─── */
+/* ── Category Picker ─── */
 .main {
   padding: 24px;
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
   width: 100%;
   padding-bottom: 40px;
 }
 
-.page-title { font-size: 22px; font-weight: 800; margin-bottom: 24px; }
+.page-header { margin-bottom: 24px; }
+.page-title { font-size: 22px; font-weight: 800; }
+.page-sub { color: var(--color-text-muted); font-size: 14px; margin-top: 4px; }
 
-.loading { color: var(--color-text-muted); text-align: center; padding: 60px 0; }
-
-.group { margin-bottom: 28px; }
-
-.group-header { margin-bottom: 10px; }
-
-.group-badge {
-  display: inline-block;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: white;
-}
-
-.group-badge.custom {
-  background: var(--color-border);
-  color: var(--color-text-muted);
-}
-
-.template-grid {
+.category-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
 }
 
-.template-card {
+.category-card {
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+  border-left: 3px solid var(--cat-color, var(--color-border));
   border-radius: var(--radius-lg);
   padding: 16px;
   text-align: left;
@@ -268,48 +239,67 @@ function confirmDiscard() {
   transition: all 0.15s;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   font-family: inherit;
+  min-height: 140px;
 }
 
-.template-card:hover {
-  border-color: var(--color-primary);
+.category-card:hover {
   background: var(--color-surface-2);
+  border-color: var(--cat-color, var(--color-primary));
+  border-left-color: var(--cat-color, var(--color-primary));
   transform: translateY(-1px);
 }
 
-.custom-card:hover {
-  border-color: var(--color-border);
+.custom-card {
+  --cat-color: var(--color-border);
   border-style: dashed;
+  border-left-style: dashed;
 }
 
-.t-name {
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--color-text);
-}
-
-.t-exercises {
-  font-size: 12px;
-  color: var(--color-text-muted);
-  line-height: 1.4;
-}
-
-.t-meta {
+.card-top {
   display: flex;
-  gap: 12px;
-  margin-top: 4px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.card-info { flex: 1; min-width: 0; }
+
+.cat-name {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--cat-color, var(--color-text));
+  line-height: 1.2;
+}
+
+.cat-meta {
   font-size: 11px;
-  font-weight: 600;
   color: var(--color-text-muted);
+  margin-top: 3px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
-/* ── Active Workout ─── */
-.workout-main {
-  padding-bottom: 100px;
+.cat-exercises {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  flex: 1;
 }
+
+.cat-muscles {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  opacity: 0.45;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: auto;
+}
+
+/* ── Active Workout ─── */
+.workout-main { padding-bottom: 100px; }
 
 .workout-header {
   display: flex;
@@ -333,9 +323,7 @@ function confirmDiscard() {
   width: 100%;
 }
 
-.workout-name-input:focus {
-  border-bottom: 1px solid var(--color-border);
-}
+.workout-name-input:focus { border-bottom: 1px solid var(--color-border); }
 
 .timer {
   font-size: 13px;
@@ -344,7 +332,7 @@ function confirmDiscard() {
   margin-top: 4px;
 }
 
-.header-pills { display: flex; gap: 8px; flex-shrink: 0; }
+.header-left { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 0; }
 
 .pill {
   padding: 6px 12px;
@@ -360,10 +348,42 @@ function confirmDiscard() {
   color: var(--color-xp);
 }
 
-.pill.gaming {
-  background: rgba(16,185,129,0.1);
-  border-color: rgba(16,185,129,0.3);
-  color: var(--color-accent);
+
+.quick-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding: 0 0 10px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 4px;
+}
+.quick-actions::-webkit-scrollbar { display: none; }
+
+.qa-btn {
+  flex-shrink: 0;
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: inherit;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.qa-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.qa-btn:active { background: rgba(124,58,237,0.1); }
+
+.qa-divider {
+  flex-shrink: 0;
+  width: 1px;
+  height: 20px;
+  background: var(--color-border);
+  margin: 0 2px;
 }
 
 .exercises { display: flex; flex-direction: column; gap: 12px; margin-bottom: 16px; }
@@ -388,11 +408,24 @@ function confirmDiscard() {
   position: fixed;
   bottom: 0; left: 0; right: 0;
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   padding: 14px 20px;
+  padding-bottom: max(14px, env(safe-area-inset-bottom));
   background: var(--color-bg);
   border-top: 1px solid var(--color-border);
   z-index: 10;
+}
+
+.workout-footer .btn-secondary { flex: 1; min-width: 120px; }
+.workout-footer .btn-complete  { flex: 2; min-width: 160px; }
+.workout-footer .btn-discard   { flex: 1; min-width: 100px; }
+
+@media (max-width: 640px) {
+  .main { padding: 16px; }
+  .category-grid { grid-template-columns: 1fr; }
+  .workout-main { padding-bottom: 130px; }
+  .workout-footer { padding-bottom: calc(max(14px, env(safe-area-inset-bottom)) + 56px); }
 }
 
 .btn-complete {
@@ -413,16 +446,11 @@ function confirmDiscard() {
 .btn-complete:not(:disabled):hover { opacity: 0.9; }
 
 .btn-discard {
-  display: block;
-  margin: 10px auto 0;
   background: none;
-  border: none;
+  border: 1px solid var(--color-border);
   color: var(--color-text-muted);
-  font-size: 13px;
-  font-family: inherit;
-  cursor: pointer;
-  text-decoration: underline;
+  font-size: 12px;
+  flex: 0 0 auto;
 }
-
-.btn-discard:hover { color: #f87171; }
+.btn-discard:hover { border-color: #f87171; color: #f87171; }
 </style>

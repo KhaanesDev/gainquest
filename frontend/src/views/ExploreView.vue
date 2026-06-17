@@ -4,8 +4,9 @@
       <RouterLink to="/dashboard" class="nav-brand">GainQuest</RouterLink>
       <div class="nav-links">
         <RouterLink to="/dashboard">Dashboard</RouterLink>
-        <RouterLink to="/workout">Log Workout</RouterLink>
+        <RouterLink to="/workout">Start Workout</RouterLink>
         <RouterLink to="/explore">Explore</RouterLink>
+        <RouterLink to="/stats">Progress</RouterLink>
         <RouterLink to="/profile">Profile</RouterLink>
       </div>
     </nav>
@@ -35,18 +36,28 @@
           </div>
           <p v-else class="hint">Tap any muscle to begin</p>
 
-          <!-- Start workout CTA -->
-          <button
-            v-if="exercises.length > 0"
-            class="btn btn-primary start-btn"
-            @click="startWorkoutFromResults"
-          >
-            Start Workout with These
-          </button>
         </div>
 
         <!-- Right: exercise results -->
         <div class="results-panel">
+          <!-- Cart summary — always visible when items added -->
+          <div v-if="cartItems.length > 0" class="cart">
+            <div class="cart-header" @click="cartOpen = !cartOpen">
+              <span class="cart-title">🛒 Workout ({{ cartItems.length }})</span>
+              <div class="cart-header-right">
+                <button class="cart-clear" @click.stop="cartItems = []">Clear</button>
+                <button class="btn btn-primary cart-start-inline" @click.stop="startWorkoutFromResults">Start</button>
+                <span class="cart-chevron" :class="{ open: cartOpen }">›</span>
+              </div>
+            </div>
+            <div v-if="cartOpen" class="cart-dropdown">
+              <div v-for="ex in cartItems" :key="ex.id" class="cart-item">
+                <span class="cart-item-name">{{ capitalize(ex.name) }}</span>
+                <button class="cart-remove" @click="toggleExercise(ex)" aria-label="Remove">✕</button>
+              </div>
+            </div>
+          </div>
+
           <div v-if="selected.length === 0" class="empty-state">
             <p class="empty-icon">💪</p>
             <p>Select muscle groups on the left to see exercises.</p>
@@ -69,7 +80,7 @@
                 v-for="ex in exercises"
                 :key="ex.id"
                 class="exercise-card"
-                :class="{ 'in-workout': addedIds.has(ex.id) }"
+                :class="{ 'in-workout': cartIds.has(ex.id) }"
                 @click="toggleExercise(ex)"
               >
                 <div class="exercise-info">
@@ -88,17 +99,14 @@
                   </div>
                 </div>
                 <div class="card-footer">
-                  <a
-                    :href="`https://www.youtube.com/results?search_query=how+to+${encodeURIComponent(ex.name)}+exercise+form`"
-                    target="_blank"
-                    rel="noopener"
+                  <button
                     class="watch-btn"
-                    @click.stop
+                    @click.stop="demoExercise = ex.name"
                   >
                     ▶ Watch
-                  </a>
-                  <div class="add-indicator" :class="{ added: addedIds.has(ex.id) }">
-                    {{ addedIds.has(ex.id) ? '✓ Added' : '+ Add' }}
+                  </button>
+                  <div class="add-indicator" :class="{ added: cartIds.has(ex.id) }">
+                    {{ cartIds.has(ex.id) ? '✓ Added' : '+ Add' }}
                   </div>
                 </div>
               </div>
@@ -107,13 +115,16 @@
         </div>
       </div>
     </main>
+
+    <ExerciseDemoModal :name="demoExercise" @close="demoExercise = null" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import MusclePicker from '@/components/MusclePicker.vue'
+import ExerciseDemoModal from '@/components/ExerciseDemoModal.vue'
 import {
   fetchForMuscles,
   capitalize,
@@ -125,11 +136,15 @@ import { useWorkoutStore } from '@/stores/workout'
 const workout = useWorkoutStore()
 const router = useRouter()
 
+const demoExercise = ref<string | null>(null)
 const selected = ref<string[]>([])
 const exercises = ref<Exercise[]>([])
-const addedIds = ref(new Set<string>())
+const cartItems = ref<Exercise[]>([])
+const cartOpen = ref(false)
 const loading = ref(false)
 const error = ref('')
+
+const cartIds = computed(() => new Set(cartItems.value.map(e => e.id)))
 
 function toggleMuscle(id: string) {
   const idx = selected.value.indexOf(id)
@@ -138,8 +153,9 @@ function toggleMuscle(id: string) {
 }
 
 function toggleExercise(ex: Exercise) {
-  if (addedIds.value.has(ex.id)) addedIds.value.delete(ex.id)
-  else addedIds.value.add(ex.id)
+  const idx = cartItems.value.findIndex(e => e.id === ex.id)
+  if (idx >= 0) cartItems.value.splice(idx, 1)
+  else cartItems.value.push(ex)
 }
 
 async function load() {
@@ -151,8 +167,6 @@ async function load() {
   error.value = ''
   try {
     exercises.value = await fetchForMuscles(selected.value)
-    // Clear added state when results change
-    addedIds.value = new Set()
   } catch (e: unknown) {
     error.value = e instanceof Error ? e.message : 'Failed to load exercises'
   } finally {
@@ -161,9 +175,7 @@ async function load() {
 }
 
 function startWorkoutFromResults() {
-  const toAdd = addedIds.value.size > 0
-    ? exercises.value.filter(e => addedIds.value.has(e.id))
-    : exercises.value.slice(0, 8)
+  const toAdd = cartItems.value.length > 0 ? cartItems.value : exercises.value.slice(0, 8)
 
   const muscleLabel = selected.value.map(id => MUSCLES[id]?.label).filter(Boolean).join(' + ')
   workout.start(muscleLabel || 'Workout')
@@ -223,6 +235,8 @@ watch(selected, () => {
 
 @media (max-width: 700px) {
   .explorer-layout { grid-template-columns: 1fr; }
+  .main { padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
+  .picker-panel { position: static; }
 }
 
 /* Picker panel */
@@ -231,8 +245,6 @@ watch(selected, () => {
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  position: sticky;
-  top: 72px;
 }
 
 .badges {
@@ -303,6 +315,109 @@ watch(selected, () => {
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Cart */
+.cart {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: var(--color-surface);
+  border: 1px solid rgba(124, 58, 237, 0.35);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+}
+
+.cart-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.cart-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.cart-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cart-clear {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  padding: 2px 6px;
+  border-radius: var(--radius);
+  transition: color 0.15s;
+}
+.cart-clear:hover { color: var(--color-text); }
+
+.cart-start-inline {
+  padding: 5px 14px;
+  font-size: 12px;
+}
+
+.cart-chevron {
+  font-size: 18px;
+  color: var(--color-text-muted);
+  line-height: 1;
+  transition: transform 0.2s;
+  display: inline-block;
+}
+.cart-chevron.open { transform: rotate(90deg); }
+
+.cart-dropdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+  margin-top: 10px;
+}
+
+.cart-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(124, 58, 237, 0.1);
+  border: 1px solid rgba(124, 58, 237, 0.25);
+  border-radius: 999px;
+  padding: 3px 10px 3px 12px;
+}
+
+.cart-item-name {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+}
+
+.cart-remove {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+  font-family: inherit;
+  transition: color 0.15s;
+}
+.cart-remove:hover { color: var(--color-text); }
 
 .results-count {
   font-size: 12px;

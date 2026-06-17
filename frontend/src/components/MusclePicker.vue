@@ -9,14 +9,6 @@
           <circle cx="55" cy="16" r="14" class="skeleton" />
           <rect x="51" y="30" width="8" height="9" rx="3" class="skeleton" />
 
-          <!-- Shoulders -->
-          <ellipse cx="23" cy="60" rx="13" ry="17"
-            :class="mc('shoulders')" @click="toggle('shoulders')">
-            <title>Shoulders</title></ellipse>
-          <ellipse cx="87" cy="60" rx="13" ry="17"
-            :class="mc('shoulders')" @click="toggle('shoulders')">
-            <title>Shoulders</title></ellipse>
-
           <!-- Chest -->
           <path d="M36,42 L54,42 L54,88 Q44,93 35,88 Q31,82 31,56 Z"
             :class="mc('chest')" @click="toggle('chest')">
@@ -62,6 +54,14 @@
             :class="mc('calves')" @click="toggle('calves')">
             <title>Calves</title></rect>
 
+          <!-- Shoulders rendered last so they win clicks over chest in overlap area -->
+          <ellipse cx="23" cy="60" rx="13" ry="17"
+            :class="mc('shoulders')" @click="toggle('shoulders')">
+            <title>Shoulders</title></ellipse>
+          <ellipse cx="87" cy="60" rx="13" ry="17"
+            :class="mc('shoulders')" @click="toggle('shoulders')">
+            <title>Shoulders</title></ellipse>
+
           <!-- Inline labels on hovered/selected muscles -->
           <text v-if="selected.includes('chest')"    x="55" y="70" class="svg-label" text-anchor="middle">Chest</text>
           <text v-if="selected.includes('abs')"      x="55" y="114" class="svg-label" text-anchor="middle">Abs</text>
@@ -80,19 +80,6 @@
           <!-- skeleton -->
           <circle cx="55" cy="16" r="14" class="skeleton" />
           <rect x="51" y="30" width="8" height="9" rx="3" class="skeleton" />
-
-          <!-- Traps -->
-          <path d="M40,36 L55,30 L70,36 L68,57 L55,61 L42,57 Z"
-            :class="mc('traps')" @click="toggle('traps')">
-            <title>Trapezius</title></path>
-
-          <!-- Rear Delts -->
-          <ellipse cx="23" cy="60" rx="13" ry="17"
-            :class="mc('shoulders')" @click="toggle('shoulders')">
-            <title>Rear Deltoids</title></ellipse>
-          <ellipse cx="87" cy="60" rx="13" ry="17"
-            :class="mc('shoulders')" @click="toggle('shoulders')">
-            <title>Rear Deltoids</title></ellipse>
 
           <!-- Lats -->
           <path d="M30,64 L54,44 L54,106 Q40,112 32,102 Q28,90 28,70 Z"
@@ -147,6 +134,19 @@
             :class="mc('calves')" @click="toggle('calves')">
             <title>Calves</title></rect>
 
+          <!-- Rear Delts rendered after lats so they win in overlap -->
+          <ellipse cx="23" cy="60" rx="13" ry="17"
+            :class="mc('shoulders')" @click="toggle('shoulders')">
+            <title>Rear Deltoids</title></ellipse>
+          <ellipse cx="87" cy="60" rx="13" ry="17"
+            :class="mc('shoulders')" @click="toggle('shoulders')">
+            <title>Rear Deltoids</title></ellipse>
+
+          <!-- Traps rendered last so it wins over lats in upper-back overlap -->
+          <path d="M40,36 L55,30 L70,36 L68,57 L55,61 L42,57 Z"
+            :class="mc('traps')" @click="toggle('traps')">
+            <title>Trapezius</title></path>
+
           <!-- Labels -->
           <text v-if="selected.includes('traps')"      x="55" y="47" class="svg-label" text-anchor="middle">Traps</text>
           <text v-if="selected.includes('lats')"       x="55" y="82" class="svg-label" text-anchor="middle">Lats</text>
@@ -200,7 +200,7 @@ function mc(id: string) {
 }
 
 .body-svg {
-  width: 130px;
+  width: 160px;
   height: auto;
   display: block;
 }

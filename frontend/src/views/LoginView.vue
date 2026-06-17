@@ -2,7 +2,7 @@
   <div class="auth-page">
     <div class="auth-card card">
       <h1 class="auth-title">GainQuest</h1>
-      <p class="auth-subtitle">Train hard. Game more.</p>
+      <p class="auth-subtitle">Level up your muscles.</p>
 
       <form @submit.prevent="handleLogin" class="auth-form">
         <div class="field">

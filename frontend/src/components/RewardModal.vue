@@ -7,19 +7,25 @@
         </div>
 
         <p class="complete-label">WORKOUT COMPLETE</p>
-        <h2 class="title">You earned your loot!</h2>
+        <h2 class="title">Muscles levelled up!</h2>
 
         <div class="rewards">
           <div class="reward-item xp">
             <span class="reward-icon">⚡</span>
             <span class="reward-value">+{{ reward.xp }}</span>
-            <span class="reward-label">XP</span>
+            <span class="reward-label">XP Earned</span>
           </div>
-          <div class="reward-item gaming">
-            <span class="reward-icon">🎮</span>
-            <span class="reward-value">+{{ reward.gamingMinutes }}m</span>
-            <span class="reward-label">Gaming Time</span>
+          <div class="reward-item muscles">
+            <span class="reward-icon">💪</span>
+            <span class="reward-value">{{ reward.musclesTrained.length }}</span>
+            <span class="reward-label">Muscle{{ reward.musclesTrained.length !== 1 ? 's' : '' }} Trained</span>
           </div>
+        </div>
+
+        <div v-if="reward.musclesTrained.length > 0" class="muscle-chips">
+          <span v-for="m in reward.musclesTrained" :key="m" class="muscle-chip">
+            {{ m.replace('-', ' ') }}
+          </span>
         </div>
 
         <div v-if="reward.leveledUp" class="level-up">
@@ -28,7 +34,7 @@
         </div>
 
         <button class="btn-claim btn btn-primary" @click="emit('close')">
-          CLAIM REWARD
+          CLAIM XP
         </button>
       </div>
     </div>
@@ -115,7 +121,7 @@ function sparkStyle(i: number) {
   display: flex;
   gap: 16px;
   justify-content: center;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .reward-item {
@@ -139,7 +145,7 @@ function sparkStyle(i: number) {
 }
 
 .xp .reward-value { color: var(--color-xp); }
-.gaming .reward-value { color: var(--color-accent); }
+.muscles .reward-value { color: var(--color-accent); }
 
 .reward-label {
   font-size: 11px;
@@ -147,6 +153,25 @@ function sparkStyle(i: number) {
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--color-text-muted);
+}
+
+.muscle-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.muscle-chip {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--color-accent);
 }
 
 .level-up {
@@ -171,10 +196,7 @@ function sparkStyle(i: number) {
   border-radius: 4px;
 }
 
-.level-text {
-  font-size: 14px;
-  color: var(--color-text);
-}
+.level-text { font-size: 14px; color: var(--color-text); }
 
 .btn-claim {
   width: 100%;
@@ -184,8 +206,7 @@ function sparkStyle(i: number) {
 }
 
 @keyframes fade-in {
-  from { opacity: 0 }
-  to   { opacity: 1 }
+  from { opacity: 0 } to { opacity: 1 }
 }
 
 @keyframes pop-in {

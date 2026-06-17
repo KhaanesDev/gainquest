@@ -19,12 +19,30 @@
   --radius-lg: 12px;
 }
 
+html {
+  background: var(--color-bg);
+  height: 100%;
+}
+
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   background-color: var(--color-bg);
   color: var(--color-text);
-  min-height: 100vh;
+  min-height: 100%;
   line-height: 1.5;
+}
+
+/* Prevent iOS from zooming in on inputs smaller than 16px */
+@media (max-width: 640px) {
+  input, textarea, select {
+    font-size: max(16px, 1em) !important;
+  }
+}
+
+/* Global mobile nav hide — bottom tab bar takes over */
+@media (max-width: 640px) {
+  .nav-links { display: none !important; }
+  .nav-signout { display: none !important; }
 }
 
 a {

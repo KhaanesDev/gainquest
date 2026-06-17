@@ -203,7 +203,7 @@ const setsBodyEl = useTemplateRef<HTMLElement>('setsBodyEl')
 const dragIndex = ref<number | null>(null)
 const dragOver = ref<number | null>(null)
 
-function startDrag(e: PointerEvent, i: number) {
+function startDrag(_e: PointerEvent, i: number) {
   dragIndex.value = i
   window.addEventListener('pointermove', onPointerMove)
   window.addEventListener('pointerup', onPointerUp, { once: true })
@@ -421,14 +421,6 @@ function removeRest(set: WorkoutSet) {
   stopRestTimer(set.id)
   delete restTimers[set.id]
   set.restAfterSeconds = null
-}
-
-function adjustRest(set: WorkoutSet, delta: number) {
-  const next = Math.max(10, (set.restAfterSeconds ?? 90) + delta)
-  set.restAfterSeconds = next
-  if (restTimers[set.id] && !restTimers[set.id].running) {
-    restTimers[set.id].remaining = next
-  }
 }
 
 function startRestTimer(set: WorkoutSet) {

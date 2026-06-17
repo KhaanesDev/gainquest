@@ -156,7 +156,10 @@ export const useWorkoutStore = defineStore('workout', () => {
       } else {
         const toRemove = Math.min(-delta, ex.sets.filter(s => !s.completed).length - 1)
         for (let i = 0; i < toRemove; i++) {
-          const idx = ex.sets.findLastIndex(s => !s.completed)
+          let idx = -1
+          for (let j = ex.sets.length - 1; j >= 0; j--) {
+            if (!ex.sets[j].completed) { idx = j; break }
+          }
           if (idx >= 0) ex.sets.splice(idx, 1)
         }
       }

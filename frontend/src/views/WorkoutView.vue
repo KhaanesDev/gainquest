@@ -422,7 +422,7 @@ function confirmDiscard() {
 .workout-footer .btn-discard   { flex: 1; min-width: 100px; }
 
 @media (max-width: 640px) {
-  .main { padding: 16px; }
+  .main { padding: 16px 16px calc(90px + env(safe-area-inset-bottom)); }
   .category-grid { grid-template-columns: 1fr; }
   .workout-main { padding-bottom: 130px; }
   .workout-footer { padding-bottom: calc(max(14px, env(safe-area-inset-bottom)) + 56px); }

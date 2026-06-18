@@ -1,7 +1,7 @@
 <template>
   <div class="auth-page">
     <div class="auth-card card">
-      <h1 class="auth-title">GainQuest</h1>
+      <img src="/logo-full.png" alt="GainQuest" class="auth-logo" />
       <p class="auth-subtitle">Level up your muscles.</p>
 
       <form v-if="!resetMode" @submit.prevent="handleLogin" class="auth-form">
@@ -104,11 +104,11 @@ async function handleReset() {
   max-width: 400px;
 }
 
-.auth-title {
-  font-size: 28px;
-  font-weight: 800;
-  color: var(--color-primary);
-  text-align: center;
+.auth-logo {
+  display: block;
+  width: 160px;
+  height: auto;
+  margin: 0 auto 4px;
 }
 
 .auth-subtitle {

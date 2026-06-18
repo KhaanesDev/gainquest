@@ -1,7 +1,9 @@
 <template>
   <div class="layout">
     <nav class="navbar">
-      <RouterLink to="/dashboard" class="nav-brand">GainQuest</RouterLink>
+      <RouterLink to="/dashboard" class="nav-brand">
+        <img src="/wordmark.png" alt="GainQuest" class="brand-logo" />
+      </RouterLink>
       <div class="nav-links">
         <RouterLink to="/dashboard">Dashboard</RouterLink>
         <RouterLink to="/workout">Start Workout</RouterLink>
@@ -59,7 +61,7 @@
           </div>
 
           <div v-if="selected.length === 0" class="empty-state">
-            <p class="empty-icon">💪</p>
+            <img src="/arm.png" alt="" class="empty-arm" />
             <p>Select muscle groups on the left to see exercises.</p>
           </div>
 
@@ -210,7 +212,8 @@ watch(selected, () => {
   z-index: 10;
 }
 
-.nav-brand { font-weight: 800; font-size: 18px; color: var(--color-primary); margin-right: auto; }
+.nav-brand { display: flex; align-items: center; margin-right: auto; }
+.brand-logo { height: 22px; width: auto; display: block; }
 .nav-links { display: flex; gap: 20px; font-size: 14px; flex-wrap: wrap; }
 .nav-links a { color: var(--color-text-muted); }
 .nav-links a.router-link-active { color: var(--color-text); }
@@ -304,6 +307,7 @@ watch(selected, () => {
 }
 
 .empty-icon { font-size: 40px; }
+.empty-arm { width: 96px; height: auto; opacity: 0.9; }
 
 .spinner {
   width: 32px;

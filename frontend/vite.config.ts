@@ -30,7 +30,17 @@ export default defineConfig({
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
             handler: 'NetworkFirst',
-            options: { cacheName: 'supabase-cache' },
+            options: {
+              cacheName: 'supabase-cache',
+              // When online, the network always wins within 3s; only fall back
+              // to cache if the network truly hangs. Offline still works because
+              // fetch rejects immediately, serving the cached response.
+              networkTimeoutSeconds: 3,
+              // Don't let cached responses linger forever and get served stale.
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 60 * 24 },
+              // Only cache successful responses, never errors (401/500/etc.).
+              cacheableResponse: { statuses: [0, 200] },
+            },
           },
         ],
       },

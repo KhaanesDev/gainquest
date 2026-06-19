@@ -32,7 +32,7 @@
             >
               <span class="ex-info">
                 <span class="ex-name">{{ capitalize(ex.name) }}</span>
-                <span class="ex-target">{{ capitalize(ex.target) }}</span>
+                <span class="ex-target">{{ capitalize(prettyMuscle(ex.target)) }}</span>
               </span>
               <button class="ex-watch" @click="demoName = ex.name" title="Watch demo">▶</button>
               <button class="ex-addbtn" @click="add(ex)">
@@ -75,7 +75,7 @@
               >
                 <span class="ex-info">
                   <span class="ex-name">{{ capitalize(ex.name) }}</span>
-                  <span class="ex-target">{{ capitalize(ex.target) }}</span>
+                  <span class="ex-target">{{ capitalize(prettyMuscle(ex.target)) }}</span>
                 </span>
                 <button class="ex-watch" @click="demoName = ex.name" title="Watch demo">▶</button>
                 <button class="ex-addbtn" @click="add(ex)">
@@ -103,7 +103,7 @@
 import { ref, watch } from 'vue'
 import MusclePicker from './MusclePicker.vue'
 import ExerciseDemoModal from './ExerciseDemoModal.vue'
-import { fetchForMuscles, searchExercises, capitalize, type Exercise } from '@/composables/useExerciseDB'
+import { fetchForMuscles, searchExercises, capitalize, prettyMuscle, type Exercise } from '@/composables/useExerciseDB'
 
 const emit = defineEmits<{ close: []; add: [name: string] }>()
 

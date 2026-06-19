@@ -94,13 +94,71 @@ async function fetchByBodyPart(bodyPart: string, limit = 15): Promise<Exercise[]
   return data
 }
 
+const DIFFICULTY_ORDER: Record<string, number> = { beginner: 0, intermediate: 1, advanced: 2 }
+
+// Specific ExerciseDB target(s) per muscle id — used to pull focused exercises
+// the broad bodyPart lists miss (e.g. "spine" for lower back).
+const MUSCLE_TARGETS: Record<string, string[]> = {
+  chest: ['pectorals'],
+  shoulders: ['delts'],
+  biceps: ['biceps'],
+  triceps: ['triceps'],
+  forearms: ['forearms'],
+  abs: ['abs', 'serratus anterior'],
+  traps: ['traps', 'levator scapulae'],
+  lats: ['lats', 'upper back'],
+  'lower-back': ['spine'],
+  quads: ['quads'],
+  glutes: ['glutes'],
+  hamstrings: ['hamstrings'],
+  calves: ['calves'],
+}
+
+async function fetchByTarget(target: string, limit = 20): Promise<Exercise[]> {
+  const key = `target:${target}:${limit}`
+  if (cache.has(key)) return cache.get(key)!
+
+  const res = await fetch(`/api/exercises/target/${encodeURIComponent(target)}?limit=${limit}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const data: Exercise[] = await res.json()
+  cache.set(key, data)
+  return data
+}
+
 export async function fetchForMuscles(muscleIds: string[]): Promise<Exercise[]> {
+  const selected = new Set(muscleIds)
+  const targets = [...new Set(muscleIds.flatMap(id => MUSCLE_TARGETS[id] ?? []))]
   const bodyParts = [...new Set(
     muscleIds.map(id => MUSCLES[id]?.bodyPart).filter(Boolean)
   )]
-  const results = await Promise.all(bodyParts.map(bp => fetchByBodyPart(bp)))
-  const all = results.flat()
-  return [...new Map(all.map(e => [e.id, e])).values()]
+
+  // Target hits are the focused ones; bodyPart adds breadth. A failing target
+  // shouldn't blank the page, so swallow those individually.
+  const [targetResults, bodyResults] = await Promise.all([
+    Promise.all(targets.map(t => fetchByTarget(t).catch(() => [] as Exercise[]))),
+    Promise.all(bodyParts.map(bp => fetchByBodyPart(bp))),
+  ])
+  const all = [...new Map(
+    [...targetResults.flat(), ...bodyResults.flat()].map(e => [e.id, e])
+  ).values()]
+
+  // Rank exercises that *primarily* target a selected muscle first, then ones
+  // where it's only a secondary muscle, then everything else from the body
+  // part — so the chosen muscle gets full focus up top.
+  function focusRank(ex: Exercise): number {
+    const primary = TARGET_TO_MUSCLE[ex.target?.toLowerCase()?.trim()]
+    if (primary && selected.has(primary)) return 0
+    const secondary = (ex.secondaryMuscles ?? []).some(
+      m => selected.has(TARGET_TO_MUSCLE[m.toLowerCase().trim()])
+    )
+    return secondary ? 1 : 2
+  }
+  const diffRank = (d?: string) => DIFFICULTY_ORDER[d ?? ''] ?? 3
+
+  // Within each focus tier, order easy → hard (beginner, intermediate, advanced).
+  return all.sort((a, b) =>
+    focusRank(a) - focusRank(b) || diffRank(a.difficulty) - diffRank(b.difficulty)
+  )
 }
 
 // Typeahead search by exercise name (used by the Add Exercise picker).
@@ -115,6 +173,16 @@ export async function searchExercises(name: string): Promise<Exercise[]> {
   const data: Exercise[] = await res.json()
   cache.set(key, data)
   return data
+}
+
+// Friendlier display names for a few jargon-y ExerciseDB muscle names.
+const MUSCLE_LABELS: Record<string, string> = {
+  spine: 'lower back',
+}
+
+export function prettyMuscle(name: string): string {
+  if (!name) return name
+  return MUSCLE_LABELS[name.toLowerCase().trim()] ?? name
 }
 
 export function capitalize(str: string) {

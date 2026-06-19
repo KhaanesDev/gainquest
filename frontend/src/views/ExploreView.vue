@@ -92,11 +92,14 @@
                       {{ ex.difficulty }}
                     </span>
                   </div>
+                  <p class="equipment-line">
+                    <span class="equip-icon">{{ equipmentIcon(ex.equipment) }}</span>
+                    {{ capitalize(ex.equipment) }}
+                  </p>
                   <div class="exercise-tags">
-                    <span class="tag target">{{ capitalize(ex.target) }}</span>
-                    <span class="tag equipment">{{ ex.equipment }}</span>
-                    <span v-for="m in ex.secondaryMuscles.slice(0,2)" :key="m" class="tag secondary">
-                      {{ m }}
+                    <span class="tag target">{{ capitalize(prettyMuscle(ex.target)) }}</span>
+                    <span v-for="m in ex.secondaryMuscles.slice(0, 3)" :key="m" class="tag secondary">
+                      {{ prettyMuscle(m) }}
                     </span>
                   </div>
                 </div>
@@ -130,6 +133,7 @@ import ExerciseDemoModal from '@/components/ExerciseDemoModal.vue'
 import {
   fetchForMuscles,
   capitalize,
+  prettyMuscle,
   musclesForExercise,
   MUSCLES,
   type Exercise,
@@ -160,6 +164,18 @@ const muscleHeatmap = computed(() => {
   }
   return counts
 })
+
+// Small emoji glyph hinting at the equipment a movement needs.
+function equipmentIcon(equipment: string): string {
+  const e = equipment.toLowerCase()
+  if (e.includes('body weight') || e.includes('assisted')) return '🤸'
+  if (e.includes('cable') || e.includes('machine') || e.includes('sled') || e.includes('smith')) return '⚙️'
+  if (e.includes('band')) return '🎗️'
+  if (e.includes('ball')) return '⚪'
+  if (e.includes('kettlebell')) return '🔔'
+  if (e.includes('rope')) return '🪢'
+  return '🏋️'
+}
 
 function toggleMuscle(id: string) {
   const idx = selected.value.indexOf(id)
@@ -529,16 +545,12 @@ watch(selected, () => {
   text-transform: capitalize;
 }
 
+/* Primary target — the muscle the exercise focuses most: filled & prominent */
 .tag.target {
-  background: rgba(124, 58, 237, 0.1);
-  border-color: rgba(124, 58, 237, 0.25);
-  color: var(--color-primary);
-}
-
-.tag.equipment {
-  background: var(--color-surface-2);
-  border-color: var(--color-border);
-  color: var(--color-text-muted);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+  box-shadow: 0 0 10px rgba(124, 58, 237, 0.35);
 }
 
 .tag.secondary {
@@ -546,6 +558,17 @@ watch(selected, () => {
   border-color: rgba(148,163,184,0.2);
   color: var(--color-text-muted);
 }
+
+.equipment-line {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: capitalize;
+}
+.equip-icon { font-size: 13px; line-height: 1; }
 
 .card-footer {
   display: flex;

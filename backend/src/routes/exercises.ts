@@ -64,6 +64,22 @@ exerciseRouter.get('/bodyPart/:bodyPart', async (req, res) => {
   }
 })
 
+// Target endpoint — exercises that specifically target a muscle (e.g. "spine"
+// for lower back), which the broad bodyPart lists often miss.
+exerciseRouter.get('/target/:target', async (req, res) => {
+  const { target } = req.params
+  const limit = Math.min(Number(req.query.limit) || 20, 50)
+  const url = `${BASE}/exercises/target/${encodeURIComponent(target.toLowerCase())}?limit=${limit}&offset=0`
+
+  try {
+    const data = await cachedFetch(url) as Record<string, unknown>[]
+    res.json(rewriteGifs(data))
+  } catch (e: unknown) {
+    const status = (e as { status?: number }).status ?? 500
+    res.status(status).json({ error: String(e) })
+  }
+})
+
 // Proxy GIF images — browser <img> tags can't add RapidAPI headers
 exerciseRouter.get('/gif', async (req, res) => {
   const url = decodeURIComponent((req.query.url as string) ?? '')

@@ -16,7 +16,7 @@
             <span class="reward-label">XP Earned</span>
           </div>
           <div class="reward-item muscles">
-            <span class="reward-icon">💪</span>
+            <img src="/arm.png" alt="" class="reward-icon reward-arm" />
             <span class="reward-value">{{ reward.musclesTrained.length }}</span>
             <span class="reward-label">Muscle{{ reward.musclesTrained.length !== 1 ? 's' : '' }} Trained</span>
           </div>
@@ -137,6 +137,7 @@ function sparkStyle(i: number) {
 }
 
 .reward-icon { font-size: 28px; margin-bottom: 4px; }
+.reward-arm { width: 30px; height: auto; }
 
 .reward-value {
   font-size: 28px;

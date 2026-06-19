@@ -103,7 +103,7 @@
             >
               <!-- GO! state -->
               <template v-if="restTimers[set.id]?.remaining === 0">
-                <span class="go-icon">💪</span>
+                <img src="/arm.png" alt="" class="go-icon" />
                 <span class="go-label">GO!</span>
                 <span class="go-sub">Next set</span>
                 <button class="rest-remove" @click="removeRest(set)" title="Dismiss">✕</button>
@@ -809,7 +809,7 @@ onBeforeUnmount(() => {
   }
 }
 
-.go-icon { font-size: 20px; flex-shrink: 0; }
+.go-icon { width: 26px; height: auto; flex-shrink: 0; }
 
 .go-label {
   font-size: 22px;

@@ -79,7 +79,7 @@
             <button class="btn-remove-ex" @click="editor.exercises.splice(i, 1)">✕</button>
           </div>
 
-          <button class="btn-add-ex" @click="addEditorExercise">+ Add Exercise</button>
+          <button class="btn-add-ex" @click="showAddExercise = true">+ Add Exercise</button>
 
           <p v-if="saveError" class="save-error">⚠ {{ saveError }}</p>
           <div class="editor-footer">
@@ -121,6 +121,23 @@
         </div>
       </section>
 
+      <AddExerciseModal
+        v-if="showAddExercise"
+        @add="addExerciseByName"
+        @close="showAddExercise = false"
+      />
+
+      <ConfirmModal
+        v-if="showDelete"
+        title="Delete template"
+        message="Delete this template? It will also be removed from your weekly schedule."
+        confirm-label="Delete"
+        cancel-label="Cancel"
+        danger
+        @confirm="doDeleteTemplate"
+        @cancel="showDelete = false"
+      />
+
       <!-- Account -->
       <section class="section">
         <h3 class="section-title">ACCOUNT</h3>
@@ -136,6 +153,8 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
+import AddExerciseModal from '@/components/AddExerciseModal.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 import type { Database, TemplateExercise } from '@/types/database'
 
 type Profile = Database['public']['Tables']['profiles']['Row']
@@ -174,6 +193,9 @@ const editor = ref<Editor | null>(null)
 const loading = ref(true)
 const saving = ref(false)
 const saveError = ref('')
+const showAddExercise = ref(false)
+const showDelete = ref(false)
+const pendingDeleteId = ref<string | null>(null)
 
 let _eid = 0
 function uid() { return `e-${++_eid}` }
@@ -201,8 +223,8 @@ function startEdit(t: WorkoutTemplate) {
   }
 }
 
-function addEditorExercise() {
-  editor.value?.exercises.push(newEditorExercise())
+function addExerciseByName(name: string) {
+  editor.value?.exercises.push({ ...newEditorExercise(), name })
 }
 
 function formatDuration(s: number): string {
@@ -282,8 +304,16 @@ async function saveTemplate(asCopy = false) {
   }
 }
 
-async function confirmDelete(id: string) {
-  if (!confirm('Delete this template? It will also be removed from your schedule.')) return
+function confirmDelete(id: string) {
+  pendingDeleteId.value = id
+  showDelete.value = true
+}
+
+async function doDeleteTemplate() {
+  showDelete.value = false
+  const id = pendingDeleteId.value
+  pendingDeleteId.value = null
+  if (!id) return
   await supabase.from('workout_templates').delete().eq('id', id)
   await loadTemplates()
 }

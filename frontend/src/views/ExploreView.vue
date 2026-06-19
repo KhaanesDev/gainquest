@@ -22,7 +22,7 @@
       <div class="explorer-layout">
         <!-- Left: body picker -->
         <div class="picker-panel">
-          <MusclePicker :selected="selected" @toggle="toggleMuscle" />
+          <MusclePicker :selected="selected" :heatmap="muscleHeatmap" @toggle="toggleMuscle" />
 
           <!-- Selected badges -->
           <div v-if="selected.length > 0" class="badges">
@@ -130,6 +130,7 @@ import ExerciseDemoModal from '@/components/ExerciseDemoModal.vue'
 import {
   fetchForMuscles,
   capitalize,
+  musclesForExercise,
   MUSCLES,
   type Exercise,
 } from '@/composables/useExerciseDB'
@@ -147,6 +148,18 @@ const loading = ref(false)
 const error = ref('')
 
 const cartIds = computed(() => new Set(cartItems.value.map(e => e.id)))
+
+// Count how many cart exercises hit each muscle, so the body figure can
+// intensify its colour as you build the workout.
+const muscleHeatmap = computed(() => {
+  const counts: Record<string, number> = {}
+  for (const ex of cartItems.value) {
+    for (const id of musclesForExercise(ex)) {
+      counts[id] = (counts[id] ?? 0) + 1
+    }
+  }
+  return counts
+})
 
 function toggleMuscle(id: string) {
   const idx = selected.value.indexOf(id)

@@ -102,7 +102,8 @@ exerciseRouter.get('/id/:id', async (req, res) => {
 
 exerciseRouter.get('/name/:name', async (req, res) => {
   const { name } = req.params
-  const url = `${BASE}/exercises/name/${encodeURIComponent(name.toLowerCase())}?limit=5&offset=0`
+  const limit = Math.min(Number(req.query.limit) || 8, 15)
+  const url = `${BASE}/exercises/name/${encodeURIComponent(name.toLowerCase())}?limit=${limit}&offset=0`
   try {
     const data = await cachedFetch(url) as Record<string, unknown>[]
     res.json(rewriteGifs(data))

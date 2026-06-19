@@ -93,7 +93,7 @@
       <p v-if="saveError" class="save-error">{{ saveError }}</p>
 
       <div class="workout-footer">
-        <button class="btn btn-secondary" @click="workout.addExercise('')">+ Add Exercise</button>
+        <button class="btn btn-secondary" @click="showAddExercise = true">+ Add Exercise</button>
         <button
           class="btn btn-complete"
           :disabled="workout.completedSetCount === 0 || workout.saving"
@@ -110,6 +110,45 @@
       </div>
     </main>
 
+    <AddExerciseModal
+      v-if="showAddExercise"
+      @add="workout.addExercise($event)"
+      @close="showAddExercise = false"
+    />
+
+    <ConfirmModal
+      v-if="showTemplateConflict"
+      title="Workout in progress"
+      message="You already have a workout in progress. Discard it and start this template instead?"
+      confirm-label="Discard & start"
+      cancel-label="Keep current"
+      danger
+      @confirm="confirmReplaceWorkout"
+      @cancel="cancelReplaceWorkout"
+    />
+
+    <ConfirmModal
+      v-if="showDiscard"
+      title="Discard workout"
+      message="Discard this workout? Your progress will be lost."
+      confirm-label="Discard"
+      cancel-label="Keep going"
+      danger
+      @confirm="doDiscard"
+      @cancel="showDiscard = false"
+    />
+
+    <PromptModal
+      v-if="showSaveTemplate"
+      title="Save as template"
+      message="Give your template a name so you can reuse it later."
+      placeholder="e.g. Push Day"
+      :default-value="workout.workoutName || 'My Template'"
+      confirm-label="Save template"
+      @confirm="doSaveTemplate"
+      @cancel="showSaveTemplate = false"
+    />
+
     <RewardModal v-if="reward" :reward="reward" @close="handleRewardClose" />
   </div>
 </template>
@@ -120,6 +159,9 @@ import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
 import ExerciseCard from '@/components/ExerciseCard.vue'
 import MuscleDisplay from '@/components/MuscleDisplay.vue'
+import AddExerciseModal from '@/components/AddExerciseModal.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+import PromptModal from '@/components/PromptModal.vue'
 import RewardModal from '@/components/RewardModal.vue'
 import { useWorkoutStore, type WorkoutReward } from '@/stores/workout'
 import { useTimer } from '@/composables/useTimer'
@@ -136,13 +178,22 @@ const router = useRouter()
 const route = useRoute()
 const { elapsed } = useTimer(startedAt)
 
+const showAddExercise = ref(false)
+const showTemplateConflict = ref(false)
+const pendingTemplateId = ref<string | null>(null)
 const savingTemplate = ref(false)
 const templateSaved = ref(false)
+const showSaveTemplate = ref(false)
+const showDiscard = ref(false)
 
-async function saveAsTemplate() {
+function saveAsTemplate() {
   if (!auth.user || workout.exercises.length === 0) return
-  const name = prompt('Save this workout as a template. Name:', workout.workoutName || 'My Template')
-  if (!name || !name.trim()) return
+  showSaveTemplate.value = true
+}
+
+async function doSaveTemplate(name: string) {
+  showSaveTemplate.value = false
+  if (!auth.user) return
   savingTemplate.value = true
   saveError.value = ''
   try {
@@ -175,15 +226,44 @@ async function saveAsTemplate() {
   }
 }
 
+async function loadTemplate(id: string) {
+  try {
+    await workout.loadFromTemplateId(id)
+  } catch {
+    // Fall through to normal category picker
+  }
+  // Clear ?template= so a refresh doesn't reload or re-prompt.
+  router.replace({ path: '/workout' })
+}
+
+function confirmReplaceWorkout() {
+  showTemplateConflict.value = false
+  const id = pendingTemplateId.value
+  pendingTemplateId.value = null
+  if (!id) return
+  workout.discard()
+  loadTemplate(id)
+}
+
+function cancelReplaceWorkout() {
+  showTemplateConflict.value = false
+  pendingTemplateId.value = null
+  // Keep the current workout; drop the query so it doesn't linger.
+  router.replace({ path: '/workout' })
+}
+
 onMounted(async () => {
   const templateId = route.query.template as string | undefined
-  if (templateId && !workout.isActive) {
-    try {
-      await workout.loadFromTemplateId(templateId)
-    } catch {
-      // Fall through to normal category picker
-    }
+  if (!templateId) return
+
+  // A workout is already in progress — ask before replacing it.
+  if (workout.isActive) {
+    pendingTemplateId.value = templateId
+    showTemplateConflict.value = true
+    return
   }
+
+  await loadTemplate(templateId)
 })
 
 const muscleHeatmap = computed(() => {
@@ -232,9 +312,12 @@ function handleRewardClose() {
 }
 
 function confirmDiscard() {
-  if (confirm('Discard this workout? Progress will be lost.')) {
-    workout.discard()
-  }
+  showDiscard.value = true
+}
+
+function doDiscard() {
+  showDiscard.value = false
+  workout.discard()
 }
 </script>
 

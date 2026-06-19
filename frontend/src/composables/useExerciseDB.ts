@@ -33,6 +33,47 @@ export const MUSCLES: Record<string, MuscleInfo> = {
   calves:       { label: 'Calves',      bodyPart: 'lower legs' },
 }
 
+// Maps ExerciseDB muscle names (target + secondaryMuscles) to the muscle IDs
+// used by the body figure. Unknown names (e.g. "cardiovascular system") are
+// ignored.
+const TARGET_TO_MUSCLE: Record<string, string> = {
+  pectorals: 'chest',
+  'serratus anterior': 'abs',
+  abs: 'abs',
+  spine: 'lower-back',
+  'lower back': 'lower-back',
+  lats: 'lats',
+  'upper back': 'lats',
+  rhomboids: 'traps',
+  traps: 'traps',
+  'levator scapulae': 'traps',
+  delts: 'shoulders',
+  deltoids: 'shoulders',
+  'rotator cuff': 'shoulders',
+  biceps: 'biceps',
+  triceps: 'triceps',
+  forearms: 'forearms',
+  quads: 'quads',
+  quadriceps: 'quads',
+  hamstrings: 'hamstrings',
+  glutes: 'glutes',
+  abductors: 'glutes',
+  adductors: 'quads',
+  calves: 'calves',
+}
+
+// Resolve which body-figure muscle IDs an exercise works (primary + secondary).
+export function musclesForExercise(ex: Pick<Exercise, 'target' | 'secondaryMuscles'>): string[] {
+  const ids = new Set<string>()
+  const primary = TARGET_TO_MUSCLE[ex.target?.toLowerCase()?.trim()]
+  if (primary) ids.add(primary)
+  for (const m of ex.secondaryMuscles ?? []) {
+    const id = TARGET_TO_MUSCLE[m.toLowerCase().trim()]
+    if (id) ids.add(id)
+  }
+  return [...ids]
+}
+
 const cache = new Map<string, Exercise[]>()
 
 async function fetchByBodyPart(bodyPart: string, limit = 15): Promise<Exercise[]> {
@@ -60,6 +101,20 @@ export async function fetchForMuscles(muscleIds: string[]): Promise<Exercise[]> 
   const results = await Promise.all(bodyParts.map(bp => fetchByBodyPart(bp)))
   const all = results.flat()
   return [...new Map(all.map(e => [e.id, e])).values()]
+}
+
+// Typeahead search by exercise name (used by the Add Exercise picker).
+export async function searchExercises(name: string): Promise<Exercise[]> {
+  const q = name.trim().toLowerCase()
+  if (q.length < 2) return []
+  const key = `search:${q}`
+  if (cache.has(key)) return cache.get(key)!
+
+  const res = await fetch(`/api/exercises/name/${encodeURIComponent(q)}`)
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
+  const data: Exercise[] = await res.json()
+  cache.set(key, data)
+  return data
 }
 
 export function capitalize(str: string) {

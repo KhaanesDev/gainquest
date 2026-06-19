@@ -73,6 +73,10 @@ export const useWorkoutStore = defineStore('workout', () => {
   const saving = ref(false)
 
   const xpPreview = computed(() => calcXP(exercises.value))
+
+  // XP earned by the last completed workout, consumed by the dashboard to
+  // animate the XP bar filling. Survives the navigation to /dashboard.
+  const pendingXpGain = ref(0)
   const completedSetCount = computed(() =>
     exercises.value.flatMap(e => e.sets).filter(s => s.completed).length
   )
@@ -299,6 +303,7 @@ export const useWorkoutStore = defineStore('workout', () => {
       isActive.value = false
       exercises.value = []
       startedAt.value = null
+      pendingXpGain.value = xp
 
       return { xp, leveledUp: newLevel > oldLevel, newLevel, oldLevel, musclesTrained }
     } finally {
@@ -323,9 +328,16 @@ export const useWorkoutStore = defineStore('workout', () => {
     startedAt.value = null
   }
 
+  // Read & clear the last workout's XP gain (one-shot, for the dashboard anim).
+  function consumePendingXpGain() {
+    const g = pendingXpGain.value
+    pendingXpGain.value = 0
+    return g
+  }
+
   return {
     isActive, workoutName, startedAt, exercises, saving,
     xpPreview, completedSetCount,
-    start, markStarted, loadFromTemplate, loadFromTemplateId, addExercise, removeExercise, addSet, removeSet, toggleSet, bulkAdjustSets, bulkAdjustWeight, bulkSetTemplate, complete, discard,
+    start, markStarted, loadFromTemplate, loadFromTemplateId, addExercise, removeExercise, addSet, removeSet, toggleSet, bulkAdjustSets, bulkAdjustWeight, bulkSetTemplate, complete, discard, consumePendingXpGain,
   }
 })

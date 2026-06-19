@@ -46,13 +46,28 @@
       </div>
 
       <!-- XP progress bar -->
-      <div class="xp-bar-wrap card">
+      <div class="xp-bar-wrap card" :class="{ earning: showGain }">
+        <div v-if="showGain" class="xp-gain-chip">+{{ xpGain }} XP</div>
         <div class="xp-bar-labels">
           <span>⚡ {{ profile?.xp ?? 0 }} XP</span>
           <span class="muted">Level {{ (profile?.level ?? 1) + 1 }} at {{ nextLevelXP }} XP</span>
         </div>
-        <div class="xp-bar-track">
-          <div class="xp-bar-fill" :style="{ width: xpProgress + '%' }" />
+        <div class="xp-bar-track-area">
+          <div class="xp-bar-track">
+            <div class="xp-bar-fill" :style="{ width: displayProgress + '%' }" />
+          </div>
+          <div v-if="showGain" class="xp-lightning" :style="{ '--intensity': intensity }">
+            <svg
+              v-for="i in boltCount"
+              :key="i"
+              class="bolt"
+              :style="boltStyle(i)"
+              viewBox="0 0 20 40"
+              aria-hidden="true"
+            >
+              <polygon points="11,0 3,22 9,22 7,40 17,14 11,14" />
+            </svg>
+          </div>
         </div>
       </div>
 
@@ -148,9 +163,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, nextTick } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
+import { useWorkoutStore } from '@/stores/workout'
 import MuscleDisplay from '@/components/MuscleDisplay.vue'
 import { getMusclesForExercise } from '@/data/exerciseMuscleMap'
 import type { Database } from '@/types/database'
@@ -163,7 +179,23 @@ type WorkoutTemplate = Database['public']['Tables']['workout_templates']['Row']
 const JS_DAYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
 
 const auth = useAuthStore()
+const workout = useWorkoutStore()
 const profile = ref<Profile | null>(null)
+
+// XP-bar fill animation state
+const displayProgress = ref(0)
+const xpGain = ref(0)
+const showGain = ref(false)
+const intensity = ref(0)
+const boltCount = ref(0)
+
+function boltStyle(i: number) {
+  const pct = ((i - 0.5) / Math.max(1, boltCount.value)) * 100
+  return {
+    left: `calc(${pct.toFixed(1)}% - 6px)`,
+    animationDelay: `${(0.25 + (i - 1) * 0.07).toFixed(2)}s`,
+  }
+}
 const sessions = ref<Session[]>([])
 const totalSessions = ref(0)
 const muscleXpMap = ref<Record<string, number>>({})
@@ -266,6 +298,29 @@ onMounted(async () => {
   profile.value = p
   sessions.value = s ?? []
   totalSessions.value = count ?? 0
+
+  // If we just earned XP, animate the bar filling from where it was before.
+  const gain = workout.consumePendingXpGain()
+  if (gain > 0 && profile.value) {
+    const range = nextLevelXP.value - currentLevelMinXP.value
+    const startPct = range > 0
+      ? Math.max(0, Math.min(100, Math.round(((profile.value.xp - gain) - currentLevelMinXP.value) / range * 100)))
+      : 0
+    displayProgress.value = startPct
+    xpGain.value = gain
+    // Lightning scales with the size of the XP gain.
+    intensity.value = Math.min(1, gain / 350)
+    boltCount.value = Math.min(8, 2 + Math.round(gain / 45))
+    showGain.value = true
+    // Wait a paint at the start width, then transition to the new fill.
+    await nextTick()
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      displayProgress.value = xpProgress.value
+    }))
+    setTimeout(() => { showGain.value = false }, 2600)
+  } else {
+    displayProgress.value = xpProgress.value
+  }
 
   const todayKey = JS_DAYS[new Date().getDay()]
   const templateId = (p?.weekly_schedule ?? {})[todayKey]
@@ -388,20 +443,105 @@ onMounted(async () => {
 .no-activity { font-size: 13px; text-align: center; padding: 8px 0; }
 
 /* XP bar */
-.xp-bar-wrap { display: flex; flex-direction: column; gap: 8px; }
+.xp-bar-wrap { display: flex; flex-direction: column; gap: 8px; position: relative; }
 .xp-bar-labels { display: flex; justify-content: space-between; font-size: 13px; font-weight: 600; }
 .xp-bar-track {
   height: 10px;
   background: var(--color-surface-2);
   border-radius: 999px;
   overflow: hidden;
+  transition: box-shadow 0.3s ease;
 }
 .xp-bar-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--color-primary), var(--color-xp));
   border-radius: 999px;
-  transition: width 0.6s ease;
+  transition: width 0.9s cubic-bezier(0.22, 1, 0.36, 1);
   min-width: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* XP-gain celebration */
+.xp-bar-wrap.earning .xp-bar-track {
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35), 0 0 18px rgba(245, 158, 11, 0.35);
+}
+.xp-bar-wrap.earning .xp-bar-fill {
+  box-shadow: 0 0 14px rgba(245, 158, 11, 0.7);
+}
+.xp-bar-wrap.earning .xp-bar-fill::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  transform: translateX(-100%);
+  animation: xp-shimmer 1s ease 0.35s 2;
+}
+
+.xp-gain-chip {
+  position: absolute;
+  top: 4px;
+  right: 14px;
+  background: var(--color-xp);
+  color: #1a1206;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.6);
+  pointer-events: none;
+  animation: xp-pack-in 1.7s cubic-bezier(0.5, 0, 0.5, 1) forwards;
+}
+
+@keyframes xp-pack-in {
+  0%   { transform: translateY(-30px) scale(0.9); opacity: 0; }
+  14%  { transform: translateY(-30px) scale(1);   opacity: 1; }
+  55%  { transform: translateY(-30px) scale(1);   opacity: 1; }
+  100% { transform: translateY(16px)  scale(0.5); opacity: 0; }
+}
+
+@keyframes xp-shimmer {
+  to { transform: translateX(100%); }
+}
+
+/* Lightning — intensity (0–1) scales brightness & glow; boltCount scales count */
+.xp-bar-track-area { position: relative; }
+.xp-lightning {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 30px;
+  pointer-events: none;
+}
+.bolt {
+  position: absolute;
+  bottom: -2px;
+  width: 12px;
+  height: 28px;
+  opacity: 0;
+  animation: bolt-zap 0.9s ease-out forwards;
+}
+.bolt polygon {
+  fill: #fde68a;
+  filter: drop-shadow(0 0 calc(2px + var(--intensity, 0.4) * 7px) rgba(245, 158, 11, 0.95));
+}
+
+@keyframes bolt-zap {
+  0%        { opacity: 0; transform: translateY(6px) scaleY(0.6); }
+  10%       { opacity: calc(0.45 + var(--intensity, 0.4) * 0.55); transform: translateY(0) scaleY(1); }
+  18%       { opacity: 0; }
+  32%       { opacity: calc(0.35 + var(--intensity, 0.4) * 0.5); }
+  44%       { opacity: 0; }
+  60%       { opacity: calc(0.25 + var(--intensity, 0.4) * 0.4); }
+  74%, 100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xp-gain-chip { animation: none; opacity: 0; }
+  .xp-bar-wrap.earning .xp-bar-fill::after { animation: none; }
+  .xp-lightning { display: none; }
 }
 
 /* Stats */

@@ -5,27 +5,27 @@
         <img src="/wordmark.png" alt="GainQuest" class="brand-logo" />
       </RouterLink>
       <div class="nav-links">
-        <RouterLink to="/dashboard">Dashboard</RouterLink>
-        <RouterLink to="/workout">Start Workout</RouterLink>
-        <RouterLink to="/explore">Explore</RouterLink>
-        <RouterLink to="/stats">Progress</RouterLink>
-        <RouterLink to="/profile">Profile</RouterLink>
+        <RouterLink to="/dashboard">{{ $t('nav.dashboard') }}</RouterLink>
+        <RouterLink to="/workout">{{ $t('nav.startWorkout') }}</RouterLink>
+        <RouterLink to="/explore">{{ $t('nav.explore') }}</RouterLink>
+        <RouterLink to="/stats">{{ $t('nav.progress') }}</RouterLink>
+        <RouterLink to="/profile">{{ $t('nav.profile') }}</RouterLink>
       </div>
     </nav>
 
     <main class="main">
       <div class="page-header">
-        <h2 class="page-title">Progress</h2>
-        <p class="page-sub">Your complete training history</p>
+        <h2 class="page-title">{{ $t('stats.title') }}</h2>
+        <p class="page-sub">{{ $t('stats.sub') }}</p>
       </div>
 
-      <div v-if="loading" class="loading muted">Loading…</div>
+      <div v-if="loading" class="loading muted">{{ $t('stats.loading') }}</div>
 
       <template v-else-if="sessions.length === 0">
         <div class="empty-state card">
           <p class="empty-icon">📈</p>
-          <p>No workouts logged yet. Complete a session to start tracking your progress.</p>
-          <RouterLink to="/workout" class="btn btn-primary">Start Workout</RouterLink>
+          <p>{{ $t('stats.emptyMsg') }}</p>
+          <RouterLink to="/workout" class="btn btn-primary">{{ $t('stats.startWorkout') }}</RouterLink>
         </div>
       </template>
 
@@ -33,27 +33,27 @@
         <!-- Summary stats -->
         <div class="summary-grid">
           <div class="card stat-card">
-            <p class="stat-label">Total Workouts</p>
+            <p class="stat-label">{{ $t('stats.totalWorkouts') }}</p>
             <p class="stat-value accent">{{ sessions.length }}</p>
           </div>
           <div class="card stat-card">
-            <p class="stat-label">Total XP</p>
+            <p class="stat-label">{{ $t('stats.totalXp') }}</p>
             <p class="stat-value xp">{{ totalXp.toLocaleString() }}</p>
           </div>
           <div class="card stat-card">
-            <p class="stat-label">Best Week</p>
-            <p class="stat-value">{{ bestWeekCount }} <span class="stat-unit">sessions</span></p>
+            <p class="stat-label">{{ $t('stats.bestWeek') }}</p>
+            <p class="stat-value">{{ bestWeekCount }} <span class="stat-unit">{{ $t('stats.sessions') }}</span></p>
           </div>
           <div class="card stat-card">
-            <p class="stat-label">Active Since</p>
+            <p class="stat-label">{{ $t('stats.activeSince') }}</p>
             <p class="stat-value">{{ activeSince }}</p>
           </div>
         </div>
 
         <!-- XP Progression -->
         <div class="card chart-card">
-          <h3 class="chart-title">XP Progression</h3>
-          <p class="chart-sub muted">Cumulative XP earned over time</p>
+          <h3 class="chart-title">{{ $t('stats.xpProgression') }}</h3>
+          <p class="chart-sub muted">{{ $t('stats.xpProgressionSub') }}</p>
           <div class="chart-wrap">
             <svg :viewBox="`0 0 ${CW} ${CH}`" class="chart-svg" preserveAspectRatio="none">
               <defs>
@@ -80,8 +80,8 @@
         <div v-if="exerciseOptions.length > 0" class="card chart-card">
           <div class="chart-header">
             <div>
-              <h3 class="chart-title">Exercise Progression</h3>
-              <p class="chart-sub muted">Weight lifted over time (kg)</p>
+              <h3 class="chart-title">{{ $t('stats.exerciseProgression') }}</h3>
+              <p class="chart-sub muted">{{ $t('stats.exerciseProgressionSub') }}</p>
             </div>
             <select v-model="selectedExercise" class="ex-picker">
               <option v-for="opt in exerciseOptions" :key="opt.key" :value="opt.key">
@@ -91,7 +91,7 @@
           </div>
 
           <div v-if="exLinePoints.length < 2" class="chart-empty muted">
-            {{ exLinePoints.length === 1 ? 'Log this exercise again to see progression.' : 'No weight data for this exercise.' }}
+            {{ exLinePoints.length === 1 ? $t('stats.logAgain') : $t('stats.noWeightData') }}
           </div>
 
           <div v-else class="chart-wrap">
@@ -122,8 +122,8 @@
 
         <!-- Weekly Frequency -->
         <div class="card chart-card">
-          <h3 class="chart-title">Weekly Frequency</h3>
-          <p class="chart-sub muted">Workouts completed per week</p>
+          <h3 class="chart-title">{{ $t('stats.weeklyFrequency') }}</h3>
+          <p class="chart-sub muted">{{ $t('stats.weeklyFrequencySub') }}</p>
           <div class="chart-wrap">
             <svg :viewBox="`0 0 ${BCW} ${BCH}`" class="chart-svg" preserveAspectRatio="none">
               <line v-for="g in barYGridLines" :key="g.y" :x1="BLP" :y1="g.y" :x2="BCW-BRP" :y2="g.y" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
@@ -136,7 +136,7 @@
 
         <!-- Session log -->
         <div class="recent">
-          <h3 class="section-title">Recent Workouts</h3>
+          <h3 class="section-title">{{ $t('stats.recentWorkouts') }}</h3>
           <div class="session-list">
             <div
               v-for="s in sessions.slice().reverse()"
@@ -158,13 +158,13 @@
 
               <div v-if="expandedId === s.id" class="exercise-list">
                 <div v-if="!s.exercises || s.exercises.length === 0" class="ex-loading muted">
-                  No exercises logged
+                  {{ $t('stats.noExercisesLogged') }}
                 </div>
                 <div v-else v-for="(ex, i) in sortedExercises(s.exercises)" :key="i" class="ex-row">
                   <span class="ex-name">{{ ex.name }}</span>
                   <span class="ex-detail muted">
-                    {{ ex.sets }} sets
-                    <template v-if="ex.reps"> · {{ ex.reps }} reps</template>
+                    {{ ex.sets }} {{ $t('stats.setsWord') }}
+                    <template v-if="ex.reps"> · {{ ex.reps }} {{ $t('stats.repsWord') }}</template>
                     <template v-if="ex.weight_kg"> · {{ ex.weight_kg }} kg</template>
                     <template v-if="ex.duration_seconds"> · {{ formatDuration(ex.duration_seconds) }}</template>
                   </span>

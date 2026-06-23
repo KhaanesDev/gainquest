@@ -5,18 +5,18 @@
         <img src="/wordmark.png" alt="GainQuest" class="brand-logo" />
       </RouterLink>
       <div class="nav-links">
-        <RouterLink to="/dashboard">Dashboard</RouterLink>
-        <RouterLink to="/workout">Start Workout</RouterLink>
-        <RouterLink to="/explore">Explore</RouterLink>
-        <RouterLink to="/stats">Progress</RouterLink>
-        <RouterLink to="/profile">Profile</RouterLink>
+        <RouterLink to="/dashboard">{{ $t('nav.dashboard') }}</RouterLink>
+        <RouterLink to="/workout">{{ $t('nav.startWorkout') }}</RouterLink>
+        <RouterLink to="/explore">{{ $t('nav.explore') }}</RouterLink>
+        <RouterLink to="/stats">{{ $t('nav.progress') }}</RouterLink>
+        <RouterLink to="/profile">{{ $t('nav.profile') }}</RouterLink>
       </div>
     </nav>
 
     <main class="main">
       <div class="page-header">
-        <h2 class="page-title">Exercise Explorer</h2>
-        <p class="page-sub">Tap muscle groups to find exercises.</p>
+        <h2 class="page-title">{{ $t('explore.title') }}</h2>
+        <p class="page-sub">{{ $t('explore.sub') }}</p>
       </div>
 
       <div class="explorer-layout">
@@ -32,11 +32,11 @@
               class="badge"
               @click="toggleMuscle(id)"
             >
-              {{ MUSCLES[id]?.label }} ✕
+              {{ $t('muscles.' + id) }} ✕
             </button>
-            <button class="badge clear" @click="selected = []">Clear all</button>
+            <button class="badge clear" @click="selected = []">{{ $t('explore.clearAll') }}</button>
           </div>
-          <p v-else class="hint">Tap any muscle to begin</p>
+          <p v-else class="hint">{{ $t('explore.tapToBegin') }}</p>
 
         </div>
 
@@ -45,10 +45,10 @@
           <!-- Cart summary — always visible when items added -->
           <div v-if="cartItems.length > 0" class="cart">
             <div class="cart-header" @click="cartOpen = !cartOpen">
-              <span class="cart-title">🛒 Workout ({{ cartItems.length }})</span>
+              <span class="cart-title">🛒 {{ $t('explore.workout') }} ({{ cartItems.length }})</span>
               <div class="cart-header-right">
-                <button class="cart-clear" @click.stop="cartItems = []">Clear</button>
-                <button class="btn btn-primary cart-start-inline" @click.stop="startWorkoutFromResults">Start</button>
+                <button class="cart-clear" @click.stop="cartItems = []">{{ $t('explore.clear') }}</button>
+                <button class="btn btn-primary cart-start-inline" @click.stop="startWorkoutFromResults">{{ $t('explore.start') }}</button>
                 <span class="cart-chevron" :class="{ open: cartOpen }">›</span>
               </div>
             </div>
@@ -62,21 +62,21 @@
 
           <div v-if="selected.length === 0" class="empty-state">
             <img src="/arm.png" alt="" class="empty-arm" />
-            <p>Select muscle groups on the left to see exercises.</p>
+            <p>{{ $t('explore.selectGroups') }}</p>
           </div>
 
           <div v-else-if="loading" class="loading">
             <div class="spinner" />
-            <p>Loading exercises…</p>
+            <p>{{ $t('explore.loadingExercises') }}</p>
           </div>
 
           <div v-else-if="error" class="error-state">
             <p>{{ error }}</p>
-            <button class="btn btn-secondary" @click="load">Retry</button>
+            <button class="btn btn-secondary" @click="load">{{ $t('explore.retry') }}</button>
           </div>
 
           <template v-else>
-            <p class="results-count">{{ exercises.length }} exercises found</p>
+            <p class="results-count">{{ $t('explore.exercisesFound', { n: exercises.length }) }}</p>
             <div class="exercise-grid">
               <div
                 v-for="ex in exercises"
@@ -89,7 +89,7 @@
                   <div class="exercise-header-row">
                     <p class="exercise-name">{{ capitalize(ex.name) }}</p>
                     <span v-if="ex.difficulty" class="diff-badge" :class="ex.difficulty">
-                      {{ ex.difficulty }}
+                      {{ $t('difficulty.' + ex.difficulty) }}
                     </span>
                   </div>
                   <p class="equipment-line">
@@ -108,10 +108,10 @@
                     class="watch-btn"
                     @click.stop="demoExercise = ex.name"
                   >
-                    ▶ Watch
+                    ▶ {{ $t('explore.watch') }}
                   </button>
                   <div class="add-indicator" :class="{ added: cartIds.has(ex.id) }">
-                    {{ cartIds.has(ex.id) ? '✓ Added' : '+ Add' }}
+                    {{ cartIds.has(ex.id) ? $t('explore.added') : $t('explore.add') }}
                   </div>
                 </div>
               </div>

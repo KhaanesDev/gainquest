@@ -5,7 +5,7 @@
 
         <!-- Header -->
         <div class="panel-header">
-          <h3 class="panel-title">Add exercise</h3>
+          <h3 class="panel-title">{{ $t('exercise.addTitle') }}</h3>
           <button class="close-btn" @click="emit('close')">✕</button>
         </div>
 
@@ -15,7 +15,7 @@
           <input
             v-model="query"
             class="search-input"
-            placeholder="Search exercises…"
+            :placeholder="$t('exercise.searchPlaceholder')"
           />
           <button v-if="query" class="search-clear" @click="query = ''">✕</button>
         </div>
@@ -34,19 +34,19 @@
                 <span class="ex-name">{{ capitalize(ex.name) }}</span>
                 <span class="ex-target">{{ capitalize(prettyMuscle(ex.target)) }}</span>
               </span>
-              <button class="ex-watch" @click="demoName = ex.name" title="Watch demo">▶</button>
+              <button class="ex-watch" @click="demoName = ex.name" :title="$t('exercise.watch')">▶</button>
               <button class="ex-addbtn" @click="add(ex)">
-                {{ addedIds.has(ex.id) ? '✓ Added' : '+ Add' }}
+                {{ addedIds.has(ex.id) ? $t('exercise.added') : $t('exercise.add') }}
               </button>
             </div>
 
             <!-- Always allow adding the typed text verbatim -->
             <button class="ex-row custom-row" @click="addCustom">
               <span class="ex-info">
-                <span class="ex-name">Add “{{ query.trim() }}”</span>
-                <span class="ex-target">Custom exercise</span>
+                <span class="ex-name">{{ $t('exercise.addCustom', { q: query.trim() }) }}</span>
+                <span class="ex-target">{{ $t('exercise.customExercise') }}</span>
               </span>
-              <span class="ex-addbtn static">+ Add</span>
+              <span class="ex-addbtn static">{{ $t('exercise.add') }}</span>
             </button>
           </template>
         </div>
@@ -56,7 +56,7 @@
           <div class="picker-wrap">
             <MusclePicker :selected="selected" @toggle="toggleMuscle" />
             <p class="hint">
-              {{ selected.length === 0 ? 'Tap a muscle to browse, or search above' : 'Tap an exercise to add it' }}
+              {{ selected.length === 0 ? $t('exercise.tapBrowse') : $t('exercise.tapAdd') }}
             </p>
           </div>
 
@@ -64,7 +64,7 @@
             <div v-if="loading" class="state"><div class="spinner" /></div>
             <div v-else-if="error" class="state error">
               <p>{{ error }}</p>
-              <button class="retry" @click="load">Retry</button>
+              <button class="retry" @click="load">{{ $t('exercise.retry') }}</button>
             </div>
             <template v-else-if="selected.length > 0">
               <div
@@ -89,7 +89,7 @@
         <!-- Footer -->
         <div class="panel-footer">
           <button class="btn-done" @click="emit('close')">
-            Done<span v-if="addedCount > 0"> · {{ addedCount }} added</span>
+            {{ addedCount > 0 ? $t('exercise.doneAdded', { n: addedCount }) : $t('exercise.done') }}
           </button>
         </div>
       </div>
@@ -103,7 +103,10 @@
 import { ref, watch } from 'vue'
 import MusclePicker from './MusclePicker.vue'
 import ExerciseDemoModal from './ExerciseDemoModal.vue'
+import { useI18n } from 'vue-i18n'
 import { fetchForMuscles, searchExercises, capitalize, prettyMuscle, type Exercise } from '@/composables/useExerciseDB'
+
+const { t } = useI18n({ useScope: 'global' })
 
 const emit = defineEmits<{ close: []; add: [name: string] }>()
 
@@ -150,7 +153,7 @@ async function load() {
   try {
     exercises.value = await fetchForMuscles(selected.value)
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Failed to load exercises'
+    error.value = e instanceof Error ? e.message : t('exercise.loadFailed')
   } finally {
     loading.value = false
   }

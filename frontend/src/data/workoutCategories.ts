@@ -6,6 +6,8 @@ export interface WorkoutCategory {
   color: string
   muscles: string[]
   exercises: TemplateExercise[]
+  // Home / calisthenics category — shown when the user has no gym access.
+  home?: boolean
 }
 
 export const WORKOUT_CATEGORIES: WorkoutCategory[] = [
@@ -133,6 +135,81 @@ export const WORKOUT_CATEGORIES: WorkoutCategory[] = [
       { name: 'Barbell Row',    sets: 3, defaultReps: 8 },
       { name: 'Overhead Press', sets: 3, defaultReps: 8 },
       { name: 'Pull-ups',       sets: 3, defaultReps: 8 },
+    ],
+  },
+
+  // ── Home / calisthenics (no gym needed) ──────────────────────────────────
+  {
+    id: 'home-push',
+    name: 'Home Push',
+    color: '#16a34a',
+    muscles: ['chest', 'shoulders', 'triceps'],
+    home: true,
+    exercises: [
+      { name: 'Push-up',         sets: 4, defaultReps: 12 },
+      { name: 'Pike Push-up',    sets: 3, defaultReps: 10 },
+      { name: 'Diamond Push-up', sets: 3, defaultReps: 10 },
+      { name: 'Decline Push-up', sets: 3, defaultReps: 12 },
+      { name: 'Bench Dip',       sets: 3, defaultReps: 12 },
+    ],
+  },
+  {
+    id: 'home-pull',
+    name: 'Home Pull',
+    color: '#0d9488',
+    muscles: ['lats', 'biceps', 'traps'],
+    home: true,
+    exercises: [
+      { name: 'Pull-up',            sets: 4, defaultReps: 8 },
+      { name: 'Chin-up',            sets: 3, defaultReps: 8 },
+      { name: 'Inverted Row',       sets: 3, defaultReps: 12 },
+      { name: 'Superman',           sets: 3, defaultReps: 15 },
+      { name: 'Reverse Snow Angel', sets: 3, defaultReps: 15 },
+    ],
+  },
+  {
+    id: 'home-legs',
+    name: 'Home Legs',
+    color: '#ca8a04',
+    muscles: ['quads', 'glutes', 'hamstrings', 'calves'],
+    home: true,
+    exercises: [
+      { name: 'Bodyweight Squat',     sets: 4, defaultReps: 20 },
+      { name: 'Reverse Lunge',        sets: 3, defaultReps: 12 },
+      { name: 'Bulgarian Split Squat', sets: 3, defaultReps: 10 },
+      { name: 'Glute Bridge',         sets: 3, defaultReps: 15 },
+      { name: 'Wall Sit',             sets: 3, defaultReps: 0, type: 'timer', defaultDuration: 45 },
+      { name: 'Calf Raise',           sets: 4, defaultReps: 20 },
+    ],
+  },
+  {
+    id: 'home-core',
+    name: 'Home Core',
+    color: '#7c3aed',
+    muscles: ['abs', 'lower-back'],
+    home: true,
+    exercises: [
+      { name: 'Plank',           sets: 3, defaultReps: 0, type: 'timer', defaultDuration: 45 },
+      { name: 'Crunch',          sets: 3, defaultReps: 20 },
+      { name: 'Leg Raise',       sets: 3, defaultReps: 15 },
+      { name: 'Russian Twist',   sets: 3, defaultReps: 20 },
+      { name: 'Mountain Climber', sets: 3, defaultReps: 20 },
+      { name: 'Superman',        sets: 3, defaultReps: 15 },
+    ],
+  },
+  {
+    id: 'home-full',
+    name: 'Calisthenics Full Body',
+    color: '#10b981',
+    muscles: ['chest', 'lats', 'quads', 'abs', 'shoulders'],
+    home: true,
+    exercises: [
+      { name: 'Push-up',          sets: 3, defaultReps: 15 },
+      { name: 'Pull-up',          sets: 3, defaultReps: 8 },
+      { name: 'Bodyweight Squat', sets: 3, defaultReps: 20 },
+      { name: 'Plank',            sets: 3, defaultReps: 0, type: 'timer', defaultDuration: 45 },
+      { name: 'Reverse Lunge',    sets: 3, defaultReps: 12 },
+      { name: 'Burpee',           sets: 3, defaultReps: 12 },
     ],
   },
 ]

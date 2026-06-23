@@ -5,9 +5,9 @@
 
         <!-- Header -->
         <div class="panel-header">
-          <input v-model="exercise.name" class="ex-name-input" placeholder="Exercise name" />
+          <input v-model="exercise.name" class="ex-name-input" :placeholder="$t('exercise.namePlaceholder')" />
           <button class="type-pill" :class="exercise.type" @click="switchType">
-            {{ exercise.type === 'reps' ? 'Reps' : 'Timer' }}
+            {{ exercise.type === 'reps' ? $t('exercise.reps') : $t('exercise.timer') }}
           </button>
           <button class="close-btn" @click="emit('close')">✕</button>
         </div>
@@ -16,10 +16,10 @@
         <div class="col-labels" :class="exercise.type">
           <span></span>
           <template v-if="exercise.type === 'reps'">
-            <span>REPS</span>
-            <span>KG</span>
+            <span>{{ $t('exercise.repsLabel') }}</span>
+            <span>{{ $t('exercise.kgLabel') }}</span>
           </template>
-          <span v-else class="span-timer">DURATION</span>
+          <span v-else class="span-timer">{{ $t('exercise.durationLabel') }}</span>
           <span></span>
         </div>
 
@@ -37,7 +37,7 @@
                 :disabled="set.completed"
                 @pointerdown="startDrag($event, i)"
                 @click="onBadgeClick(set)"
-                title="Tap to switch warmup/working · drag to reorder"
+                :title="$t('exercise.dragTitle')"
               >{{ setBadge(set, i) }}</button>
 
               <!-- Reps mode -->
@@ -104,9 +104,9 @@
               <!-- GO! state -->
               <template v-if="restTimers[set.id]?.remaining === 0">
                 <img src="/arm.png" alt="" class="go-icon" />
-                <span class="go-label">GO!</span>
-                <span class="go-sub">Next set</span>
-                <button class="rest-remove" @click="removeRest(set)" title="Dismiss">✕</button>
+                <span class="go-label">{{ $t('exercise.go') }}</span>
+                <span class="go-sub">{{ $t('exercise.nextSet') }}</span>
+                <button class="rest-remove" @click="removeRest(set)" :title="$t('exercise.dismiss')">✕</button>
               </template>
 
               <!-- Normal / running state -->
@@ -128,7 +128,7 @@
                   @click="startRestTimer(set)"
                 >▶</button>
                 <button v-else class="rest-action stop" @click="stopRestTimer(set.id)">■</button>
-                <button class="rest-remove" @click="removeRest(set)" title="Remove rest">✕</button>
+                <button class="rest-remove" @click="removeRest(set)" :title="$t('exercise.removeRest')">✕</button>
               </template>
               <div v-if="restPickerSetId === set.id && !restTimers[set.id]?.running" class="rest-picker">
                 <ScrollWheelInput
@@ -145,7 +145,7 @@
               v-else-if="!set.restAfterSeconds && i < exercise.sets.length - 1"
               class="add-rest-row"
             >
-              <button class="btn-add-rest" @click="addRest(set)">+ Rest</button>
+              <button class="btn-add-rest" @click="addRest(set)">{{ $t('exercise.addRest') }}</button>
             </div>
 
           </template>
@@ -159,19 +159,19 @@
           @click="allDone ? emit('complete-workout') : emit('close')"
         >
           <span class="cta-icon">{{ allDone ? '🏆' : '✓' }}</span>
-          <span class="cta-label">{{ allDone ? 'Complete Workout' : 'Done' }}</span>
+          <span class="cta-label">{{ allDone ? $t('exercise.complete') : $t('exercise.done') }}</span>
           <span class="cta-arrow">→</span>
         </div>
 
         <!-- Footer -->
         <div class="panel-footer">
           <div class="footer-sets">
-            <button class="btn-footer warmup" @click="workout.addSet(exercise.id, 'warmup')">+ Warmup</button>
-            <button class="btn-footer" @click="workout.addSet(exercise.id, 'working')">+ Set</button>
+            <button class="btn-footer warmup" @click="workout.addSet(exercise.id, 'warmup')">{{ $t('exercise.addWarmup') }}</button>
+            <button class="btn-footer" @click="workout.addSet(exercise.id, 'working')">{{ $t('exercise.addSet') }}</button>
           </div>
           <div class="footer-right">
-            <button v-if="exercise.name.trim()" class="btn-watch" @click="showDemo = true">▶ Watch</button>
-            <button class="btn-remove-ex" @click="emit('remove'); emit('close')">Remove</button>
+            <button v-if="exercise.name.trim()" class="btn-watch" @click="showDemo = true">▶ {{ $t('exercise.watch') }}</button>
+            <button class="btn-remove-ex" @click="emit('remove'); emit('close')">{{ $t('exercise.remove') }}</button>
           </div>
         </div>
       </div>

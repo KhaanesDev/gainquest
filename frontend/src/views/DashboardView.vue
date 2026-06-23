@@ -5,44 +5,44 @@
         <img src="/wordmark.png" alt="GainQuest" class="brand-logo" />
       </span>
       <div class="nav-links">
-        <RouterLink to="/dashboard">Dashboard</RouterLink>
-        <RouterLink to="/workout">Start Workout</RouterLink>
-        <RouterLink to="/explore">Explore</RouterLink>
-        <RouterLink to="/stats">Progress</RouterLink>
-        <RouterLink to="/profile">Profile</RouterLink>
+        <RouterLink to="/dashboard">{{ $t('nav.dashboard') }}</RouterLink>
+        <RouterLink to="/workout">{{ $t('nav.startWorkout') }}</RouterLink>
+        <RouterLink to="/explore">{{ $t('nav.explore') }}</RouterLink>
+        <RouterLink to="/stats">{{ $t('nav.progress') }}</RouterLink>
+        <RouterLink to="/profile">{{ $t('nav.profile') }}</RouterLink>
       </div>
       <button class="btn btn-secondary nav-signout" @click="auth.signOut()">Sign out</button>
     </nav>
 
     <main class="main">
       <div class="welcome">
-        <h2 class="page-title">Hey, {{ profile?.username ?? '…' }}</h2>
-        <p class="page-sub">Level {{ profile?.level ?? 1 }} · {{ xpToNextLevel }} XP to next level</p>
+        <h2 class="page-title">{{ $t('dashboard.greeting', { name: profile?.username ?? '…' }) }}</h2>
+        <p class="page-sub">{{ $t('dashboard.toNextLevel', { level: profile?.level ?? 1, xp: xpToNextLevel }) }}</p>
       </div>
 
       <!-- Muscle heatmap -->
       <div class="card heatmap-card">
         <div class="heatmap-header">
           <div>
-            <p class="heatmap-title">Muscle Activity</p>
-            <p class="heatmap-sub muted">Last 7 days</p>
+            <p class="heatmap-title">{{ $t('dashboard.muscleActivity') }}</p>
+            <p class="heatmap-sub muted">{{ $t('dashboard.last7Days') }}</p>
           </div>
           <div class="heatmap-legend">
             <span class="legend-swatch" style="background: hsl(0,75%,38%)" />
-            <span class="muted">Low</span>
+            <span class="muted">{{ $t('dashboard.low') }}</span>
             <span class="legend-bar" />
             <span class="legend-swatch" style="background: hsl(120,75%,38%)" />
-            <span class="muted">High</span>
+            <span class="muted">{{ $t('dashboard.high') }}</span>
           </div>
         </div>
         <div class="heatmap-body">
           <MuscleDisplay :muscle-xp="muscleXpMap" size="lg" />
           <div class="heatmap-labels">
-            <p class="label-front">Front</p>
-            <p class="label-back">Back</p>
+            <p class="label-front">{{ $t('dashboard.front') }}</p>
+            <p class="label-back">{{ $t('dashboard.back') }}</p>
           </div>
         </div>
-        <p v-if="noActivity" class="no-activity muted">No workouts logged yet — start one to see your progress!</p>
+        <p v-if="noActivity" class="no-activity muted">{{ $t('dashboard.noActivity') }}</p>
       </div>
 
       <!-- XP progress bar -->
@@ -50,7 +50,7 @@
         <div v-if="showGain" class="xp-gain-chip">+{{ xpGain }} XP</div>
         <div class="xp-bar-labels">
           <span>⚡ {{ profile?.xp ?? 0 }} XP</span>
-          <span class="muted">Level {{ (profile?.level ?? 1) + 1 }} at {{ nextLevelXP }} XP</span>
+          <span class="muted">{{ $t('dashboard.nextLevelAt', { level: (profile?.level ?? 1) + 1, xp: nextLevelXP }) }}</span>
         </div>
         <div class="xp-bar-track-area">
           <div class="xp-bar-track">
@@ -74,46 +74,46 @@
       <!-- Stats -->
       <div class="stats-grid">
         <div class="card stat-card">
-          <p class="stat-label">Streak</p>
+          <p class="stat-label">{{ $t('dashboard.streak') }}</p>
           <p class="stat-value">{{ profile?.streak_days ?? 0 }}</p>
-          <p class="stat-hint">days in a row</p>
+          <p class="stat-hint">{{ $t('dashboard.daysInRow') }}</p>
         </div>
         <div class="card stat-card">
-          <p class="stat-label">Total XP</p>
+          <p class="stat-label">{{ $t('dashboard.totalXp') }}</p>
           <p class="stat-value xp">{{ profile?.xp ?? 0 }}</p>
-          <p class="stat-hint">all time</p>
+          <p class="stat-hint">{{ $t('dashboard.allTime') }}</p>
         </div>
         <div class="card stat-card">
-          <p class="stat-label">Workouts</p>
+          <p class="stat-label">{{ $t('dashboard.workouts') }}</p>
           <p class="stat-value accent">{{ totalSessions }}</p>
-          <p class="stat-hint">completed</p>
+          <p class="stat-hint">{{ $t('dashboard.completed') }}</p>
         </div>
       </div>
 
       <!-- Today's scheduled workout -->
       <div v-if="todaysTemplate" class="card today-card">
         <div class="today-info">
-          <p class="today-label">TODAY'S WORKOUT</p>
+          <p class="today-label">{{ $t('dashboard.todaysWorkout') }}</p>
           <h3 class="today-name">{{ todaysTemplate.name }}</h3>
-          <p class="today-meta muted">{{ todaysTemplate.exercises_data?.length ?? 0 }} exercises</p>
+          <p class="today-meta muted">{{ $t('dashboard.exercises', { n: todaysTemplate.exercises_data?.length ?? 0 }) }}</p>
         </div>
         <RouterLink :to="`/workout?template=${todaysTemplate.id}`" class="btn btn-primary today-btn">
-          Start →
+          {{ $t('dashboard.start') }}
         </RouterLink>
       </div>
 
       <!-- CTA -->
       <div class="card cta-card">
         <div>
-          <h3>Ready to grind?</h3>
-          <p>Complete a workout to level up your body.</p>
+          <h3>{{ $t('dashboard.readyTitle') }}</h3>
+          <p>{{ $t('dashboard.readySub') }}</p>
         </div>
-        <RouterLink to="/workout" class="btn btn-primary">Start Workout</RouterLink>
+        <RouterLink to="/workout" class="btn btn-primary">{{ $t('dashboard.startWorkout') }}</RouterLink>
       </div>
 
       <!-- Recent sessions -->
       <div v-if="sessions.length > 0" class="recent">
-        <h3 class="section-title">Recent Workouts</h3>
+        <h3 class="section-title">{{ $t('dashboard.recentWorkouts') }}</h3>
         <div class="session-list">
           <div
             v-for="s in sessions"
@@ -134,11 +134,11 @@
             </div>
 
             <div v-if="expandedId === s.id" class="exercise-list">
-              <div v-if="!sessionExercises[s.id]" class="ex-loading muted">Loading…</div>
+              <div v-if="!sessionExercises[s.id]" class="ex-loading muted">{{ $t('dashboard.loading') }}</div>
               <div
                 v-else-if="sessionExercises[s.id].length === 0"
                 class="ex-loading muted"
-              >No exercises logged</div>
+              >{{ $t('dashboard.noExercisesLogged') }}</div>
               <div v-else>
                 <div
                   v-for="ex in sessionExercises[s.id]"
@@ -147,8 +147,8 @@
                 >
                   <span class="ex-name">{{ ex.name }}</span>
                   <span class="ex-detail muted">
-                    {{ ex.sets }} sets
-                    <template v-if="ex.reps"> · {{ ex.reps }} reps</template>
+                    {{ ex.sets }} {{ $t('stats.setsWord') }}
+                    <template v-if="ex.reps"> · {{ ex.reps }} {{ $t('stats.repsWord') }}</template>
                     <template v-if="ex.weight_kg"> · {{ ex.weight_kg }} kg</template>
                     <template v-if="ex.duration_seconds"> · {{ formatDuration(ex.duration_seconds) }}</template>
                   </span>

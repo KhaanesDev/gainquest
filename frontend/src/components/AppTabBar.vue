@@ -2,27 +2,27 @@
   <nav v-if="auth.user" class="tab-bar">
     <RouterLink to="/dashboard" class="tab" :class="{ active: route.path === '/dashboard' }">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      <span>Home</span>
+      <span>{{ $t('tabbar.home') }}</span>
     </RouterLink>
 
     <RouterLink to="/workout" class="tab" :class="{ active: route.path === '/workout' }">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4v16M18 4v16M3 12h18M2 7h4M18 7h4M2 17h4M18 17h4"/></svg>
-      <span>Workout</span>
+      <span>{{ $t('tabbar.workout') }}</span>
     </RouterLink>
 
     <RouterLink to="/explore" class="tab" :class="{ active: route.path === '/explore' }">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      <span>Explore</span>
+      <span>{{ $t('tabbar.explore') }}</span>
     </RouterLink>
 
     <RouterLink to="/stats" class="tab" :class="{ active: route.path === '/stats' }">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      <span>Progress</span>
+      <span>{{ $t('tabbar.progress') }}</span>
     </RouterLink>
 
     <RouterLink to="/profile" class="tab" :class="{ active: route.path === '/profile' }">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-      <span>Profile</span>
+      <span>{{ $t('tabbar.profile') }}</span>
     </RouterLink>
   </nav>
 </template>

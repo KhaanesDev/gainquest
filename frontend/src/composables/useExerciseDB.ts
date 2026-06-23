@@ -1,3 +1,5 @@
+import { gymAccess } from './useSettings'
+
 export interface Exercise {
   id: string
   name: string
@@ -125,6 +127,15 @@ async function fetchByTarget(target: string, limit = 20): Promise<Exercise[]> {
   return data
 }
 
+// Equipment that doesn't require a gym (bodyweight + minimal home gear).
+const NO_GYM_EQUIPMENT = new Set([
+  'body weight', 'band', 'resistance band',
+  'stability ball', 'medicine ball', 'bosu ball', 'wheel roller', 'rope',
+])
+const isNoGym = (ex: Exercise) => NO_GYM_EQUIPMENT.has((ex.equipment ?? '').toLowerCase())
+// When the user has no gym access, keep only no-gym exercises.
+const applyGym = (list: Exercise[]) => gymAccess.value ? list : list.filter(isNoGym)
+
 export async function fetchForMuscles(muscleIds: string[]): Promise<Exercise[]> {
   const selected = new Set(muscleIds)
   const targets = [...new Set(muscleIds.flatMap(id => MUSCLE_TARGETS[id] ?? []))]
@@ -156,7 +167,7 @@ export async function fetchForMuscles(muscleIds: string[]): Promise<Exercise[]> 
   const diffRank = (d?: string) => DIFFICULTY_ORDER[d ?? ''] ?? 3
 
   // Within each focus tier, order easy → hard (beginner, intermediate, advanced).
-  return all.sort((a, b) =>
+  return applyGym(all).sort((a, b) =>
     focusRank(a) - focusRank(b) || diffRank(a.difficulty) - diffRank(b.difficulty)
   )
 }
@@ -166,13 +177,13 @@ export async function searchExercises(name: string): Promise<Exercise[]> {
   const q = name.trim().toLowerCase()
   if (q.length < 2) return []
   const key = `search:${q}`
-  if (cache.has(key)) return cache.get(key)!
+  if (cache.has(key)) return applyGym(cache.get(key)!)
 
   const res = await fetch(`/api/exercises/name/${encodeURIComponent(q)}`)
   if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const data: Exercise[] = await res.json()
   cache.set(key, data)
-  return data
+  return applyGym(data)
 }
 
 // Friendlier display names for a few jargon-y ExerciseDB muscle names.

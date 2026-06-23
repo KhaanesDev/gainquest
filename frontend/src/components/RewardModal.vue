@@ -13,35 +13,35 @@
           <span v-for="i in 8" :key="i" class="spark" :style="sparkStyle(i)" />
         </div>
 
-        <p class="complete-label">WORKOUT COMPLETE</p>
-        <h2 class="title">Muscles levelled up!</h2>
+        <p class="complete-label">{{ $t('reward.complete') }}</p>
+        <h2 class="title">{{ $t('reward.title') }}</h2>
 
         <div class="rewards">
           <div class="reward-item xp">
             <span class="reward-icon">⚡</span>
             <span class="reward-value">+{{ displayXp }}</span>
-            <span class="reward-label">XP Earned</span>
+            <span class="reward-label">{{ $t('reward.xpEarned') }}</span>
           </div>
           <div class="reward-item muscles">
             <img src="/arm.png" alt="" class="reward-icon reward-arm" />
             <span class="reward-value">{{ reward.musclesTrained.length }}</span>
-            <span class="reward-label">Muscle{{ reward.musclesTrained.length !== 1 ? 's' : '' }} Trained</span>
+            <span class="reward-label">{{ $t('reward.musclesTrained', reward.musclesTrained.length) }}</span>
           </div>
         </div>
 
         <div v-if="reward.musclesTrained.length > 0" class="muscle-chips">
           <span v-for="m in reward.musclesTrained" :key="m" class="muscle-chip">
-            {{ m.replace('-', ' ') }}
+            {{ $t('muscles.' + m) }}
           </span>
         </div>
 
         <div v-if="reward.leveledUp" class="level-up">
-          <span class="level-up-badge">LEVEL UP!</span>
-          <span class="level-text">Level {{ reward.oldLevel }} → <strong>{{ reward.newLevel }}</strong></span>
+          <span class="level-up-badge">{{ $t('reward.levelUp') }}</span>
+          <span class="level-text">{{ $t('reward.levelWord') }} {{ reward.oldLevel }} → <strong>{{ reward.newLevel }}</strong></span>
         </div>
 
         <button class="btn-claim btn btn-primary" @click="emit('close')">
-          CLAIM XP
+          {{ $t('reward.claimXp') }}
         </button>
       </div>
     </div>

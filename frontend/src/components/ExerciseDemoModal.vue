@@ -21,12 +21,12 @@
               class="video-frame"
             />
           </div>
-          <div v-else class="state muted">No video found for this exercise.</div>
+          <div v-else class="state muted">{{ $t('exercise.noVideo') }}</div>
         </div>
 
         <div v-if="videoIds.length > 1" class="modal-footer">
           <span class="video-count muted">{{ currentIndex + 1 }} / {{ videoIds.length }}</span>
-          <button class="try-another" @click="nextVideo">↻ Wrong video? Try another</button>
+          <button class="try-another" @click="nextVideo">↻ {{ $t('exercise.tryAnother') }}</button>
         </div>
       </div>
     </div>

@@ -12,55 +12,55 @@
           <!-- Chest -->
           <path d="M36,42 L54,42 L54,88 Q44,93 35,88 Q31,82 31,56 Z"
             class="muscle" v-bind="ms('chest')" @click="toggle('chest')">
-            <title>Chest</title></path>
+            <title>{{ $t('muscles.chest') }}</title></path>
           <path d="M74,42 L56,42 L56,88 Q66,93 75,88 Q79,82 79,56 Z"
             class="muscle" v-bind="ms('chest')" @click="toggle('chest')">
-            <title>Chest</title></path>
+            <title>{{ $t('muscles.chest') }}</title></path>
 
           <!-- Biceps -->
           <rect x="11" y="77" width="12" height="36" rx="6"
             class="muscle" v-bind="ms('biceps')" @click="toggle('biceps')">
-            <title>Biceps</title></rect>
+            <title>{{ $t('muscles.biceps') }}</title></rect>
           <rect x="87" y="77" width="12" height="36" rx="6"
             class="muscle" v-bind="ms('biceps')" @click="toggle('biceps')">
-            <title>Biceps</title></rect>
+            <title>{{ $t('muscles.biceps') }}</title></rect>
 
           <!-- Forearms -->
           <rect x="12" y="116" width="10" height="28" rx="5"
             class="muscle" v-bind="ms('forearms')" @click="toggle('forearms')">
-            <title>Forearms</title></rect>
+            <title>{{ $t('muscles.forearms') }}</title></rect>
           <rect x="88" y="116" width="10" height="28" rx="5"
             class="muscle" v-bind="ms('forearms')" @click="toggle('forearms')">
-            <title>Forearms</title></rect>
+            <title>{{ $t('muscles.forearms') }}</title></rect>
 
           <!-- Abs -->
           <rect x="38" y="88" width="34" height="46" rx="6"
             class="muscle" v-bind="ms('abs')" @click="toggle('abs')">
-            <title>Abs</title></rect>
+            <title>{{ $t('muscles.abs') }}</title></rect>
 
           <!-- Quads -->
           <rect x="31" y="150" width="22" height="66" rx="8"
             class="muscle" v-bind="ms('quads')" @click="toggle('quads')">
-            <title>Quads</title></rect>
+            <title>{{ $t('muscles.quads') }}</title></rect>
           <rect x="57" y="150" width="22" height="66" rx="8"
             class="muscle" v-bind="ms('quads')" @click="toggle('quads')">
-            <title>Quads</title></rect>
+            <title>{{ $t('muscles.quads') }}</title></rect>
 
           <!-- Calves front -->
           <rect x="33" y="220" width="18" height="52" rx="7"
             class="muscle" v-bind="ms('calves')" @click="toggle('calves')">
-            <title>Calves</title></rect>
+            <title>{{ $t('muscles.calves') }}</title></rect>
           <rect x="59" y="220" width="18" height="52" rx="7"
             class="muscle" v-bind="ms('calves')" @click="toggle('calves')">
-            <title>Calves</title></rect>
+            <title>{{ $t('muscles.calves') }}</title></rect>
 
           <!-- Shoulders rendered last so they win clicks over chest in overlap area -->
           <ellipse cx="23" cy="60" rx="13" ry="17"
             class="muscle" v-bind="ms('shoulders')" @click="toggle('shoulders')">
-            <title>Shoulders</title></ellipse>
+            <title>{{ $t('muscles.shoulders') }}</title></ellipse>
           <ellipse cx="87" cy="60" rx="13" ry="17"
             class="muscle" v-bind="ms('shoulders')" @click="toggle('shoulders')">
-            <title>Shoulders</title></ellipse>
+            <title>{{ $t('muscles.shoulders') }}</title></ellipse>
 
           <!-- Inline labels on hovered/selected muscles -->
           <text v-if="selected.includes('chest')"    x="55" y="70" class="svg-label" text-anchor="middle">Chest</text>
@@ -84,68 +84,68 @@
           <!-- Lats -->
           <path d="M30,64 L54,44 L54,106 Q40,112 32,102 Q28,90 28,70 Z"
             class="muscle" v-bind="ms('lats')" @click="toggle('lats')">
-            <title>Lats</title></path>
+            <title>{{ $t('muscles.lats') }}</title></path>
           <path d="M80,64 L56,44 L56,106 Q70,112 78,102 Q82,90 82,70 Z"
             class="muscle" v-bind="ms('lats')" @click="toggle('lats')">
-            <title>Lats</title></path>
+            <title>{{ $t('muscles.lats') }}</title></path>
 
           <!-- Lower Back -->
           <rect x="38" y="106" width="34" height="22" rx="5"
             class="muscle" v-bind="ms('lower-back')" @click="toggle('lower-back')">
-            <title>Lower Back</title></rect>
+            <title>{{ $t('muscles.lower-back') }}</title></rect>
 
           <!-- Triceps -->
           <rect x="11" y="77" width="12" height="36" rx="6"
             class="muscle" v-bind="ms('triceps')" @click="toggle('triceps')">
-            <title>Triceps</title></rect>
+            <title>{{ $t('muscles.triceps') }}</title></rect>
           <rect x="87" y="77" width="12" height="36" rx="6"
             class="muscle" v-bind="ms('triceps')" @click="toggle('triceps')">
-            <title>Triceps</title></rect>
+            <title>{{ $t('muscles.triceps') }}</title></rect>
 
           <!-- Forearms back -->
           <rect x="12" y="116" width="10" height="28" rx="5"
             class="muscle" v-bind="ms('forearms')" @click="toggle('forearms')">
-            <title>Forearms</title></rect>
+            <title>{{ $t('muscles.forearms') }}</title></rect>
           <rect x="88" y="116" width="10" height="28" rx="5"
             class="muscle" v-bind="ms('forearms')" @click="toggle('forearms')">
-            <title>Forearms</title></rect>
+            <title>{{ $t('muscles.forearms') }}</title></rect>
 
           <!-- Glutes -->
           <rect x="31" y="150" width="22" height="32" rx="8"
             class="muscle" v-bind="ms('glutes')" @click="toggle('glutes')">
-            <title>Glutes</title></rect>
+            <title>{{ $t('muscles.glutes') }}</title></rect>
           <rect x="57" y="150" width="22" height="32" rx="8"
             class="muscle" v-bind="ms('glutes')" @click="toggle('glutes')">
-            <title>Glutes</title></rect>
+            <title>{{ $t('muscles.glutes') }}</title></rect>
 
           <!-- Hamstrings -->
           <rect x="31" y="185" width="22" height="32" rx="8"
             class="muscle" v-bind="ms('hamstrings')" @click="toggle('hamstrings')">
-            <title>Hamstrings</title></rect>
+            <title>{{ $t('muscles.hamstrings') }}</title></rect>
           <rect x="57" y="185" width="22" height="32" rx="8"
             class="muscle" v-bind="ms('hamstrings')" @click="toggle('hamstrings')">
-            <title>Hamstrings</title></rect>
+            <title>{{ $t('muscles.hamstrings') }}</title></rect>
 
           <!-- Calves back -->
           <rect x="33" y="220" width="18" height="52" rx="7"
             class="muscle" v-bind="ms('calves')" @click="toggle('calves')">
-            <title>Calves</title></rect>
+            <title>{{ $t('muscles.calves') }}</title></rect>
           <rect x="59" y="220" width="18" height="52" rx="7"
             class="muscle" v-bind="ms('calves')" @click="toggle('calves')">
-            <title>Calves</title></rect>
+            <title>{{ $t('muscles.calves') }}</title></rect>
 
           <!-- Rear Delts rendered after lats so they win in overlap -->
           <ellipse cx="23" cy="60" rx="13" ry="17"
             class="muscle" v-bind="ms('shoulders')" @click="toggle('shoulders')">
-            <title>Rear Deltoids</title></ellipse>
+            <title>{{ $t('muscles.shoulders') }}</title></ellipse>
           <ellipse cx="87" cy="60" rx="13" ry="17"
             class="muscle" v-bind="ms('shoulders')" @click="toggle('shoulders')">
-            <title>Rear Deltoids</title></ellipse>
+            <title>{{ $t('muscles.shoulders') }}</title></ellipse>
 
           <!-- Traps rendered last so it wins over lats in upper-back overlap -->
           <path d="M40,36 L55,30 L70,36 L68,57 L55,61 L42,57 Z"
             class="muscle" v-bind="ms('traps')" @click="toggle('traps')">
-            <title>Trapezius</title></path>
+            <title>{{ $t('muscles.traps') }}</title></path>
 
           <!-- Labels -->
           <text v-if="selected.includes('traps')"      x="55" y="47" class="svg-label" text-anchor="middle">Traps</text>

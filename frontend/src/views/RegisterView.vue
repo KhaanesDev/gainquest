@@ -2,37 +2,39 @@
   <div class="auth-page">
     <div class="auth-card card">
       <h1 class="auth-title">GainQuest</h1>
-      <p class="auth-subtitle">Create your account</p>
+      <p class="auth-subtitle">{{ $t('auth.registerSubtitle') }}</p>
 
       <div v-if="confirmationSent" class="confirm-msg">
         <p class="confirm-icon">📧</p>
-        <p>Almost there! We sent a confirmation link to <strong>{{ email }}</strong>.</p>
-        <p class="confirm-sub">Click the link in the email to activate your account, then log in.</p>
-        <RouterLink to="/login" class="btn btn-primary w-full">Go to login</RouterLink>
+        <i18n-t keypath="auth.confirmAlmost" tag="p">
+          <template #email><strong>{{ email }}</strong></template>
+        </i18n-t>
+        <p class="confirm-sub">{{ $t('auth.confirmSub') }}</p>
+        <RouterLink to="/login" class="btn btn-primary w-full">{{ $t('auth.goToLogin') }}</RouterLink>
       </div>
 
       <template v-else>
         <form @submit.prevent="handleRegister" class="auth-form">
           <div class="field">
-            <label>Username</label>
-            <input v-model="username" type="text" class="input" placeholder="IronViking99" required />
+            <label>{{ $t('auth.username') }}</label>
+            <input v-model="username" type="text" class="input" :placeholder="$t('auth.usernamePlaceholder')" required />
           </div>
           <div class="field">
-            <label>Email</label>
-            <input v-model="email" type="email" class="input" placeholder="you@example.com" required />
+            <label>{{ $t('auth.email') }}</label>
+            <input v-model="email" type="email" class="input" :placeholder="$t('auth.emailPlaceholder')" required />
           </div>
           <div class="field">
-            <label>Password</label>
-            <input v-model="password" type="password" class="input" placeholder="Min 8 characters" required minlength="8" />
+            <label>{{ $t('auth.password') }}</label>
+            <input v-model="password" type="password" class="input" :placeholder="$t('auth.minChars')" required minlength="8" />
           </div>
           <p v-if="error" class="error-msg">{{ error }}</p>
           <button type="submit" class="btn btn-primary w-full" :disabled="loading">
-            {{ loading ? 'Creating account...' : 'Create account' }}
+            {{ loading ? $t('auth.creatingAccount') : $t('auth.createAccount') }}
           </button>
         </form>
 
         <p class="auth-footer">
-          Already have an account? <RouterLink to="/login">Log in</RouterLink>
+          {{ $t('auth.alreadyHaveAccount') }} <RouterLink to="/login">{{ $t('auth.logIn') }}</RouterLink>
         </p>
       </template>
     </div>
@@ -42,7 +44,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+
+const { t } = useI18n()
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -65,7 +70,7 @@ async function handleRegister() {
       router.push('/dashboard')
     }
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Registration failed'
+    error.value = e instanceof Error ? e.message : t('auth.errors.registrationFailed')
   } finally {
     loading.value = false
   }

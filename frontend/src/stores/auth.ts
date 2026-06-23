@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { User } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { i18n } from '@/i18n'
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
@@ -30,7 +31,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!isEmailConfirmed(data.user)) {
       await supabase.auth.signOut()
       user.value = null
-      throw new Error('Please confirm your email before logging in. Check your inbox.')
+      throw new Error(i18n.global.t('auth.errors.confirmEmail'))
     }
     user.value = data.user
   }
@@ -50,7 +51,7 @@ export const useAuthStore = defineStore('auth', () => {
     // empty identities array if the email is already registered (to avoid
     // leaking which emails exist). Treat that as a duplicate.
     if (data.user && data.user.identities && data.user.identities.length === 0) {
-      throw new Error('An account with this email already exists.')
+      throw new Error(i18n.global.t('auth.errors.emailExists'))
     }
 
     // If a session was returned, email confirmation is off → log straight in.

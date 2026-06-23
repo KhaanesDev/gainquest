@@ -1,11 +1,11 @@
 <template>
   <div class="exercise-card" :class="{ done: isDone }" @click="open = true">
     <div class="card-main">
-      <p class="ex-name">{{ exercise.name || 'Unnamed Exercise' }}</p>
+      <p class="ex-name">{{ exercise.name || $t('exercise.unnamed') }}</p>
       <p class="ex-meta muted">
-        <template v-if="warmupCount > 0">W{{ warmupCount }} + {{ workingCount }} sets</template>
-        <template v-else>{{ exercise.sets.length }} sets</template>
-        <span v-if="completedCount > 0"> · {{ completedCount }} done</span>
+        <template v-if="warmupCount > 0">{{ $t('exercise.warmupWorking', { w: warmupCount, n: workingCount }) }}</template>
+        <template v-else>{{ $t('exercise.setsCount', { n: exercise.sets.length }) }}</template>
+        <span v-if="completedCount > 0"> · {{ $t('exercise.doneCount', { n: completedCount }) }}</span>
       </p>
     </div>
     <div class="card-right">

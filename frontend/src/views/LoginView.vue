@@ -2,41 +2,41 @@
   <div class="auth-page">
     <div class="auth-card card">
       <img src="/logo-full.png" alt="GainQuest" class="auth-logo" />
-      <p class="auth-subtitle">Level up your muscles.</p>
+      <p class="auth-subtitle">{{ $t('auth.loginSubtitle') }}</p>
 
       <form v-if="!resetMode" @submit.prevent="handleLogin" class="auth-form">
         <div class="field">
-          <label>Email</label>
-          <input v-model="email" type="email" class="input" placeholder="you@example.com" required />
+          <label>{{ $t('auth.email') }}</label>
+          <input v-model="email" type="email" class="input" :placeholder="$t('auth.emailPlaceholder')" required />
         </div>
         <div class="field">
-          <label>Password</label>
+          <label>{{ $t('auth.password') }}</label>
           <input v-model="password" type="password" class="input" placeholder="••••••••" required />
         </div>
         <p v-if="error" class="error-msg">{{ error }}</p>
         <button type="submit" class="btn btn-primary w-full" :disabled="loading">
-          {{ loading ? 'Logging in...' : 'Log in' }}
+          {{ loading ? $t('auth.loggingIn') : $t('auth.logIn') }}
         </button>
-        <button type="button" class="link-btn" @click="enterResetMode">Forgot password?</button>
+        <button type="button" class="link-btn" @click="enterResetMode">{{ $t('auth.forgotPassword') }}</button>
       </form>
 
       <!-- Forgot password mode -->
       <form v-else @submit.prevent="handleReset" class="auth-form">
-        <p class="reset-hint">Enter your email and we'll send you a reset link.</p>
+        <p class="reset-hint">{{ $t('auth.resetHint') }}</p>
         <div class="field">
-          <label>Email</label>
-          <input v-model="email" type="email" class="input" placeholder="you@example.com" required />
+          <label>{{ $t('auth.email') }}</label>
+          <input v-model="email" type="email" class="input" :placeholder="$t('auth.emailPlaceholder')" required />
         </div>
         <p v-if="error" class="error-msg">{{ error }}</p>
-        <p v-if="resetSent" class="success-msg">Reset link sent! Check your inbox.</p>
+        <p v-if="resetSent" class="success-msg">{{ $t('auth.resetSent') }}</p>
         <button type="submit" class="btn btn-primary w-full" :disabled="loading || resetSent">
-          {{ loading ? 'Sending...' : 'Send reset link' }}
+          {{ loading ? $t('auth.sending') : $t('auth.sendResetLink') }}
         </button>
-        <button type="button" class="link-btn" @click="resetMode = false">Back to login</button>
+        <button type="button" class="link-btn" @click="resetMode = false">{{ $t('auth.backToLogin') }}</button>
       </form>
 
       <p v-if="!resetMode" class="auth-footer">
-        No account? <RouterLink to="/register">Sign up</RouterLink>
+        {{ $t('auth.noAccount') }} <RouterLink to="/register">{{ $t('auth.signUp') }}</RouterLink>
       </p>
     </div>
   </div>
@@ -45,7 +45,10 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+
+const { t } = useI18n()
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -64,7 +67,7 @@ async function handleLogin() {
     await auth.signIn(email.value, password.value)
     router.push('/dashboard')
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Login failed'
+    error.value = e instanceof Error ? e.message : t('auth.errors.loginFailed')
   } finally {
     loading.value = false
   }
@@ -83,7 +86,7 @@ async function handleReset() {
     await auth.resetPassword(email.value)
     resetSent.value = true
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Could not send reset link'
+    error.value = e instanceof Error ? e.message : t('auth.errors.resetFailed')
   } finally {
     loading.value = false
   }

@@ -2,27 +2,27 @@
   <div class="auth-page">
     <div class="auth-card card">
       <h1 class="auth-title">GainQuest</h1>
-      <p class="auth-subtitle">Set a new password</p>
+      <p class="auth-subtitle">{{ $t('auth.resetSubtitle') }}</p>
 
       <form v-if="!done" @submit.prevent="handleUpdate" class="auth-form">
         <div class="field">
-          <label>New password</label>
-          <input v-model="password" type="password" class="input" placeholder="Min 8 characters" required minlength="8" />
+          <label>{{ $t('auth.newPassword') }}</label>
+          <input v-model="password" type="password" class="input" :placeholder="$t('auth.minChars')" required minlength="8" />
         </div>
         <div class="field">
-          <label>Confirm password</label>
-          <input v-model="confirm" type="password" class="input" placeholder="Repeat password" required minlength="8" />
+          <label>{{ $t('auth.confirmPassword') }}</label>
+          <input v-model="confirm" type="password" class="input" :placeholder="$t('auth.repeatPassword')" required minlength="8" />
         </div>
         <p v-if="error" class="error-msg">{{ error }}</p>
         <button type="submit" class="btn btn-primary w-full" :disabled="loading">
-          {{ loading ? 'Saving...' : 'Update password' }}
+          {{ loading ? $t('auth.savingPassword') : $t('auth.updatePassword') }}
         </button>
       </form>
 
       <div v-else class="confirm-msg">
         <p class="confirm-icon">✅</p>
-        <p>Your password has been updated.</p>
-        <RouterLink to="/dashboard" class="btn btn-primary w-full">Go to dashboard</RouterLink>
+        <p>{{ $t('auth.passwordUpdated') }}</p>
+        <RouterLink to="/dashboard" class="btn btn-primary w-full">{{ $t('auth.goToDashboard') }}</RouterLink>
       </div>
     </div>
   </div>
@@ -30,7 +30,10 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
+
+const { t } = useI18n()
 
 const auth = useAuthStore()
 
@@ -43,7 +46,7 @@ const done = ref(false)
 async function handleUpdate() {
   error.value = ''
   if (password.value !== confirm.value) {
-    error.value = 'Passwords do not match.'
+    error.value = t('auth.passwordsNoMatch')
     return
   }
   loading.value = true
@@ -51,7 +54,7 @@ async function handleUpdate() {
     await auth.updatePassword(password.value)
     done.value = true
   } catch (e: unknown) {
-    error.value = e instanceof Error ? e.message : 'Could not update password'
+    error.value = e instanceof Error ? e.message : t('auth.errors.updateFailed')
   } finally {
     loading.value = false
   }

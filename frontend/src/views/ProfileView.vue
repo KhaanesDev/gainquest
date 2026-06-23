@@ -5,11 +5,11 @@
         <img src="/wordmark.png" alt="GainQuest" class="brand-logo" />
       </RouterLink>
       <div class="nav-links">
-        <RouterLink to="/dashboard">Dashboard</RouterLink>
-        <RouterLink to="/workout">Start Workout</RouterLink>
-        <RouterLink to="/explore">Explore</RouterLink>
-        <RouterLink to="/stats">Progress</RouterLink>
-        <RouterLink to="/profile">Profile</RouterLink>
+        <RouterLink to="/dashboard">{{ $t('nav.dashboard') }}</RouterLink>
+        <RouterLink to="/workout">{{ $t('nav.startWorkout') }}</RouterLink>
+        <RouterLink to="/explore">{{ $t('nav.explore') }}</RouterLink>
+        <RouterLink to="/stats">{{ $t('nav.progress') }}</RouterLink>
+        <RouterLink to="/profile">{{ $t('nav.profile') }}</RouterLink>
       </div>
     </nav>
 
@@ -17,21 +17,21 @@
       <div class="page-header">
         <div>
           <h2 class="page-title">{{ profile?.username ?? '…' }}</h2>
-          <p class="page-sub">Level {{ profile?.level ?? 1 }} · {{ profile?.xp ?? 0 }} XP · {{ profile?.streak_days ?? 0 }} day streak</p>
+          <p class="page-sub">{{ $t('profile.levelLine', { level: profile?.level ?? 1, xp: profile?.xp ?? 0, streak: profile?.streak_days ?? 0 }) }}</p>
         </div>
-        <RouterLink to="/schedule" class="btn btn-secondary schedule-btn">Weekly Schedule →</RouterLink>
+        <RouterLink to="/schedule" class="btn btn-secondary schedule-btn">{{ $t('profile.weeklySchedule') }}</RouterLink>
       </div>
 
       <!-- Templates section -->
       <section class="section">
         <div class="section-header">
-          <h3 class="section-title">MY TEMPLATES</h3>
+          <h3 class="section-title">{{ $t('profile.myTemplates') }}</h3>
           <span class="template-count muted">{{ templates.length }}/10</span>
           <button
             v-if="!editor && templates.length < 10"
             class="btn-new"
             @click="startNew"
-          >+ New</button>
+          >{{ $t('profile.new') }}</button>
         </div>
 
         <!-- Inline editor -->
@@ -39,18 +39,18 @@
           <input
             v-model="editor.name"
             class="editor-name-input"
-            placeholder="Template name (e.g. Push Day)"
+            :placeholder="$t('profile.templateNamePlaceholder')"
           />
 
           <div class="ex-header">
-            <span>Exercise</span>
-            <span>Sets</span>
-            <span>Reps / Duration</span>
+            <span>{{ $t('profile.exercise') }}</span>
+            <span>{{ $t('profile.sets') }}</span>
+            <span>{{ $t('profile.repsDuration') }}</span>
             <span></span>
           </div>
 
           <div v-for="(ex, i) in editor.exercises" :key="ex.id" class="ex-row">
-            <input v-model="ex.name" class="ex-name-input" :placeholder="`Exercise ${i + 1}`" />
+            <input v-model="ex.name" class="ex-name-input" :placeholder="$t('profile.exercisePlaceholder', { n: i + 1 })" />
             <input
               v-model.number="ex.sets"
               type="number" min="1" max="20"
@@ -73,34 +73,34 @@
                 class="type-toggle"
                 :class="ex.type"
                 @click="ex.type = ex.type === 'reps' ? 'timer' : 'reps'"
-                :title="ex.type === 'reps' ? 'Switch to timer' : 'Switch to reps'"
+                :title="ex.type === 'reps' ? $t('profile.switchToTimer') : $t('profile.switchToReps')"
               >{{ ex.type === 'reps' ? 'R' : 'T' }}</button>
             </div>
             <button class="btn-remove-ex" @click="editor.exercises.splice(i, 1)">✕</button>
           </div>
 
-          <button class="btn-add-ex" @click="showAddExercise = true">+ Add Exercise</button>
+          <button class="btn-add-ex" @click="showAddExercise = true">{{ $t('profile.addExercise') }}</button>
 
           <p v-if="saveError" class="save-error">⚠ {{ saveError }}</p>
           <div class="editor-footer">
-            <button class="btn btn-secondary" @click="editor = null; saveError = ''">Cancel</button>
+            <button class="btn btn-secondary" @click="editor = null; saveError = ''">{{ $t('profile.cancel') }}</button>
             <button
               v-if="editor.id"
               class="btn btn-secondary"
               :disabled="saving || !editor.name.trim() || templates.length >= 10"
               @click="saveTemplate(true)"
-              title="Save these changes as a new template, keeping the original"
+              :title="$t('profile.saveAsCopyTitle')"
             >
-              Save as copy
+              {{ $t('profile.saveAsCopy') }}
             </button>
             <button class="btn btn-primary" :disabled="saving || !editor.name.trim()" @click="saveTemplate(false)">
-              {{ saving ? 'Saving…' : editor.id ? 'Update Template' : 'Save Template' }}
+              {{ saving ? $t('profile.saving') : editor.id ? $t('profile.updateTemplate') : $t('profile.saveTemplate') }}
             </button>
           </div>
         </div>
 
         <!-- Template list -->
-        <div v-if="loading" class="loading muted">Loading…</div>
+        <div v-if="loading" class="loading muted">{{ $t('profile.loading') }}</div>
         <div v-else class="template-list">
           <div v-for="t in templates" :key="t.id" class="template-card card">
             <div class="template-row">
@@ -109,14 +109,14 @@
                 <p class="template-exercises muted">{{ summarize(t) }}</p>
               </div>
               <div class="template-actions">
-                <button class="btn-sm use" @click="useTemplate(t.id)">Use</button>
-                <button class="btn-sm" @click="startEdit(t)">Edit</button>
+                <button class="btn-sm use" @click="useTemplate(t.id)">{{ $t('profile.use') }}</button>
+                <button class="btn-sm" @click="startEdit(t)">{{ $t('profile.edit') }}</button>
                 <button class="btn-sm danger" @click="confirmDelete(t.id)">✕</button>
               </div>
             </div>
           </div>
           <p v-if="templates.length === 0 && !editor" class="empty muted">
-            No templates yet — create one to schedule your week.
+            {{ $t('profile.noTemplates') }}
           </p>
         </div>
       </section>
@@ -129,20 +129,45 @@
 
       <ConfirmModal
         v-if="showDelete"
-        title="Delete template"
-        message="Delete this template? It will also be removed from your weekly schedule."
-        confirm-label="Delete"
-        cancel-label="Cancel"
+        :title="$t('profile.deleteTitle')"
+        :message="$t('profile.deleteMsg')"
+        :confirm-label="$t('common.delete')"
+        :cancel-label="$t('common.cancel')"
         danger
         @confirm="doDeleteTemplate"
         @cancel="showDelete = false"
       />
 
+      <!-- Equipment / gym access -->
+      <section class="section">
+        <h3 class="section-title">{{ $t('profile.equipmentTitle') }}</h3>
+        <button class="setting-row" @click="gymAccess = !gymAccess">
+          <span class="setting-text">
+            <span class="setting-label">{{ $t('profile.gymAccess') }}</span>
+            <span class="setting-hint muted">{{ gymAccess ? $t('profile.gymOn') : $t('profile.gymOff') }}</span>
+          </span>
+          <span class="switch" :class="{ on: gymAccess }"><span class="knob" /></span>
+        </button>
+      </section>
+
+      <!-- Language -->
+      <section class="section">
+        <h3 class="section-title">{{ $t('profile.language') }}</h3>
+        <div class="lang-switch">
+          <button class="lang-btn" :class="{ active: locale === 'en' }" @click="changeLocale('en')">
+            <span class="flag">🇬🇧</span> English
+          </button>
+          <button class="lang-btn" :class="{ active: locale === 'no' }" @click="changeLocale('no')">
+            <span class="flag">🇳🇴</span> Norsk
+          </button>
+        </div>
+      </section>
+
       <!-- Account -->
       <section class="section">
-        <h3 class="section-title">ACCOUNT</h3>
+        <h3 class="section-title">{{ $t('profile.account') }}</h3>
         <p class="account-email muted">{{ auth.user?.email }}</p>
-        <button class="btn btn-logout" @click="handleSignOut">Sign out</button>
+        <button class="btn btn-logout" @click="handleSignOut">{{ $t('profile.signOut') }}</button>
       </section>
     </main>
   </div>
@@ -151,11 +176,20 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
+import { setLocale, type Locale } from '@/i18n'
+import { gymAccess } from '@/composables/useSettings'
 import AddExerciseModal from '@/components/AddExerciseModal.vue'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import type { Database, TemplateExercise } from '@/types/database'
+
+const { t, locale } = useI18n({ useScope: 'global' })
+
+function changeLocale(l: Locale) {
+  setLocale(l)
+}
 
 type Profile = Database['public']['Tables']['profiles']['Row']
 type WorkoutTemplate = Database['public']['Tables']['workout_templates']['Row']
@@ -246,11 +280,11 @@ function onDurationChange(ex: EditorExercise, e: Event) {
   ;(e.target as HTMLInputElement).value = formatDuration(ex.defaultDuration)
 }
 
-function summarize(t: WorkoutTemplate): string {
-  const exes = (t.exercises_data ?? []) as TemplateExercise[]
-  if (exes.length === 0) return 'No exercises'
+function summarize(tmpl: WorkoutTemplate): string {
+  const exes = (tmpl.exercises_data ?? []) as TemplateExercise[]
+  if (exes.length === 0) return t('profile.noExercises')
   const names = exes.slice(0, 3).map(e => e.name).join(' · ')
-  return exes.length > 3 ? `${names} · +${exes.length - 3} more` : names
+  return exes.length > 3 ? `${names} · ${t('profile.andMore', { n: exes.length - 3 })}` : names
 }
 
 async function loadTemplates() {
@@ -298,7 +332,7 @@ async function saveTemplate(asCopy = false) {
     await loadTemplates()
     editor.value = null
   } catch (e: unknown) {
-    saveError.value = e instanceof Error ? e.message : 'Save failed — run migration 002_weekly_schedule.sql'
+    saveError.value = e instanceof Error ? e.message : t('profile.saveFailed')
   } finally {
     saving.value = false
   }
@@ -389,6 +423,74 @@ onMounted(async () => {
   font-weight: 700;
 }
 .btn-logout:hover { background: #000; border-color: #f87171; }
+
+.lang-switch { display: flex; gap: 8px; }
+.lang-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  transition: all 0.15s;
+}
+.lang-btn:hover { border-color: var(--color-primary); color: var(--color-text); }
+.lang-btn.active {
+  border-color: var(--color-primary);
+  background: rgba(124, 58, 237, 0.12);
+  color: var(--color-text);
+}
+.lang-btn .flag { font-size: 18px; line-height: 1; }
+
+.setting-row {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--radius);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s;
+}
+.setting-row:hover { border-color: var(--color-primary); }
+.setting-text { display: flex; flex-direction: column; gap: 2px; }
+.setting-label { font-size: 14px; font-weight: 700; color: var(--color-text); }
+.setting-hint { font-size: 12px; }
+
+.switch {
+  flex-shrink: 0;
+  width: 44px;
+  height: 26px;
+  border-radius: 999px;
+  background: var(--color-border);
+  position: relative;
+  transition: background 0.18s;
+}
+.switch.on { background: var(--color-primary); }
+.switch .knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.18s;
+}
+.switch.on .knob { transform: translateX(18px); }
 
 .section-header {
   display: flex;

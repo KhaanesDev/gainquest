@@ -5,24 +5,24 @@
         <img src="/wordmark.png" alt="GainQuest" class="brand-logo" />
       </RouterLink>
       <div class="nav-links">
-        <RouterLink to="/dashboard">Dashboard</RouterLink>
-        <RouterLink to="/workout">Start Workout</RouterLink>
-        <RouterLink to="/explore">Explore</RouterLink>
-        <RouterLink to="/stats">Progress</RouterLink>
-        <RouterLink to="/profile">Profile</RouterLink>
+        <RouterLink to="/dashboard">{{ $t('nav.dashboard') }}</RouterLink>
+        <RouterLink to="/workout">{{ $t('nav.startWorkout') }}</RouterLink>
+        <RouterLink to="/explore">{{ $t('nav.explore') }}</RouterLink>
+        <RouterLink to="/stats">{{ $t('nav.progress') }}</RouterLink>
+        <RouterLink to="/profile">{{ $t('nav.profile') }}</RouterLink>
       </div>
     </nav>
 
     <!-- ── Category Picker ────────────────────────────────────────── -->
     <main v-if="!workout.isActive" class="main">
       <div class="page-header">
-        <h2 class="page-title">Start Workout</h2>
-        <p class="page-sub">What are you training today?</p>
+        <h2 class="page-title">{{ $t('workout.startWorkout') }}</h2>
+        <p class="page-sub">{{ $t('workout.whatTraining') }}</p>
       </div>
 
       <div class="category-grid">
         <button
-          v-for="cat in WORKOUT_CATEGORIES"
+          v-for="cat in visibleCategories"
           :key="cat.id"
           class="category-card"
           :style="{ '--cat-color': cat.color }"
@@ -30,28 +30,28 @@
         >
           <div class="card-top">
             <div class="card-info">
-              <p class="cat-name">{{ cat.name }}</p>
-              <p class="cat-meta">{{ cat.exercises.length }} exercises · ~{{ estTime(cat.exercises) }} min</p>
+              <p class="cat-name">{{ $t('categories.' + cat.id) }}</p>
+              <p class="cat-meta">{{ $t('workout.exercisesMin', { n: cat.exercises.length, min: estTime(cat.exercises) }) }}</p>
             </div>
             <MuscleDisplay :highlighted="cat.muscles" />
           </div>
           <p class="cat-exercises">
             {{ cat.exercises.slice(0, 3).map(e => e.name).join(' · ') }}
-            <span v-if="cat.exercises.length > 3"> · +{{ cat.exercises.length - 3 }} more</span>
+            <span v-if="cat.exercises.length > 3"> · {{ $t('profile.andMore', { n: cat.exercises.length - 3 }) }}</span>
           </p>
           <p class="cat-muscles">
-            {{ cat.muscles.map(m => m.replace('-', ' ')).join('  ·  ') }}
+            {{ cat.muscles.map(m => $t('muscles.' + m)).join('  ·  ') }}
           </p>
         </button>
 
         <button class="category-card custom-card" @click="startCustom">
           <div class="card-top">
             <div class="card-info">
-              <p class="cat-name">Custom</p>
-              <p class="cat-meta">Your choice</p>
+              <p class="cat-name">{{ $t('workout.custom') }}</p>
+              <p class="cat-meta">{{ $t('workout.yourChoice') }}</p>
             </div>
           </div>
-          <p class="cat-exercises">Start empty and add exercises as you go</p>
+          <p class="cat-exercises">{{ $t('workout.customSub') }}</p>
         </button>
       </div>
     </main>
@@ -86,27 +86,27 @@
           @complete-workout="handleComplete"
         />
         <div v-if="workout.exercises.length === 0" class="empty-hint">
-          Tap "+ Add Exercise" to build your workout.
+          {{ $t('workout.emptyHint') }}
         </div>
       </div>
 
       <p v-if="saveError" class="save-error">{{ saveError }}</p>
 
       <div class="workout-footer">
-        <button class="btn btn-secondary" @click="showAddExercise = true">+ Add Exercise</button>
+        <button class="btn btn-secondary" @click="showAddExercise = true">{{ $t('workout.addExercise') }}</button>
         <button
           class="btn btn-complete"
           :disabled="workout.completedSetCount === 0 || workout.saving"
           @click="handleComplete"
         >
-          {{ workout.saving ? 'Saving…' : 'Complete Workout' }}
+          {{ workout.saving ? $t('workout.saving') : $t('workout.complete') }}
         </button>
         <button
           class="btn btn-save-template"
           :disabled="workout.exercises.length === 0 || savingTemplate"
           @click="saveAsTemplate"
-        >{{ templateSaved ? '✓ Saved' : savingTemplate ? 'Saving…' : 'Save as template' }}</button>
-        <button class="btn btn-discard" @click="confirmDiscard">Discard</button>
+        >{{ templateSaved ? $t('workout.saved') : savingTemplate ? $t('workout.saving') : $t('workout.saveAsTemplate') }}</button>
+        <button class="btn btn-discard" @click="confirmDiscard">{{ $t('workout.discard') }}</button>
       </div>
     </main>
 
@@ -118,10 +118,10 @@
 
     <ConfirmModal
       v-if="showTemplateConflict"
-      title="Workout in progress"
-      message="You already have a workout in progress. Discard it and start this template instead?"
-      confirm-label="Discard & start"
-      cancel-label="Keep current"
+      :title="$t('workout.conflictTitle')"
+      :message="$t('workout.conflictMsg')"
+      :confirm-label="$t('workout.conflictConfirm')"
+      :cancel-label="$t('workout.conflictCancel')"
       danger
       @confirm="confirmReplaceWorkout"
       @cancel="cancelReplaceWorkout"
@@ -129,10 +129,10 @@
 
     <ConfirmModal
       v-if="showDiscard"
-      title="Discard workout"
-      message="Discard this workout? Your progress will be lost."
-      confirm-label="Discard"
-      cancel-label="Keep going"
+      :title="$t('workout.discardTitle')"
+      :message="$t('workout.discardMsg')"
+      :confirm-label="$t('workout.discardConfirm')"
+      :cancel-label="$t('workout.discardCancel')"
       danger
       @confirm="doDiscard"
       @cancel="showDiscard = false"
@@ -140,11 +140,11 @@
 
     <PromptModal
       v-if="showSaveTemplate"
-      title="Save as template"
-      message="Give your template a name so you can reuse it later."
-      placeholder="e.g. Push Day"
-      :default-value="workout.workoutName || 'My Template'"
-      confirm-label="Save template"
+      :title="$t('workout.saveTemplateTitle')"
+      :message="$t('workout.saveTemplateMsg')"
+      :placeholder="$t('workout.saveTemplatePlaceholder')"
+      :default-value="workout.workoutName || $t('workout.defaultTemplateName')"
+      :confirm-label="$t('workout.saveTemplateConfirm')"
       @confirm="doSaveTemplate"
       @cancel="showSaveTemplate = false"
     />
@@ -157,6 +157,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { storeToRefs } from 'pinia'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import ExerciseCard from '@/components/ExerciseCard.vue'
 import MuscleDisplay from '@/components/MuscleDisplay.vue'
 import AddExerciseModal from '@/components/AddExerciseModal.vue'
@@ -166,6 +167,7 @@ import RewardModal from '@/components/RewardModal.vue'
 import { useWorkoutStore, type WorkoutReward } from '@/stores/workout'
 import { useTimer } from '@/composables/useTimer'
 import { WORKOUT_CATEGORIES, type WorkoutCategory } from '@/data/workoutCategories'
+import { gymAccess } from '@/composables/useSettings'
 import { getMusclesForExercise } from '@/data/exerciseMuscleMap'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
@@ -176,6 +178,7 @@ const auth = useAuthStore()
 const { startedAt } = storeToRefs(workout)
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n({ useScope: 'global' })
 const { elapsed } = useTimer(startedAt)
 
 const showAddExercise = ref(false)
@@ -284,12 +287,17 @@ function estTime(exercises: TemplateExercise[]) {
   return Math.round(totalSets * 2.5 / 5) * 5 || 20
 }
 
+// Show gym categories when the user has gym access, home/calisthenics ones otherwise.
+const visibleCategories = computed(() =>
+  WORKOUT_CATEGORIES.filter(c => (gymAccess.value ? !c.home : !!c.home))
+)
+
 function startFromCategory(cat: WorkoutCategory) {
-  workout.loadFromTemplate(cat.name, cat.exercises)
+  workout.loadFromTemplate(t('categories.' + cat.id), cat.exercises)
 }
 
 function startCustom() {
-  workout.start('Custom Workout')
+  workout.start(t('workout.customWorkoutName'))
 }
 
 async function handleComplete() {

@@ -5,32 +5,32 @@
         <img src="/wordmark.png" alt="GainQuest" class="brand-logo" />
       </RouterLink>
       <div class="nav-links">
-        <RouterLink to="/dashboard">Dashboard</RouterLink>
-        <RouterLink to="/workout">Start Workout</RouterLink>
-        <RouterLink to="/explore">Explore</RouterLink>
-        <RouterLink to="/stats">Progress</RouterLink>
-        <RouterLink to="/profile">Profile</RouterLink>
+        <RouterLink to="/dashboard">{{ $t('nav.dashboard') }}</RouterLink>
+        <RouterLink to="/workout">{{ $t('nav.startWorkout') }}</RouterLink>
+        <RouterLink to="/explore">{{ $t('nav.explore') }}</RouterLink>
+        <RouterLink to="/stats">{{ $t('nav.progress') }}</RouterLink>
+        <RouterLink to="/profile">{{ $t('nav.profile') }}</RouterLink>
       </div>
     </nav>
 
     <main class="main">
       <div class="page-header">
         <div>
-          <h2 class="page-title">Weekly Schedule</h2>
-          <p class="page-sub">Assign a workout template to each day. Log in and hit Start.</p>
+          <h2 class="page-title">{{ $t('schedule.title') }}</h2>
+          <p class="page-sub">{{ $t('schedule.sub') }}</p>
         </div>
-        <RouterLink to="/profile" class="btn btn-secondary back-btn">← Templates</RouterLink>
+        <RouterLink to="/profile" class="btn btn-secondary back-btn">{{ $t('schedule.backTemplates') }}</RouterLink>
       </div>
 
-      <div v-if="loading" class="loading muted">Loading…</div>
+      <div v-if="loading" class="loading muted">{{ $t('schedule.loading') }}</div>
 
       <div v-if="loadError" class="error-msg">⚠ {{ loadError }}</div>
 
       <template v-else>
         <div v-if="templates.length === 0" class="empty-state card">
           <p class="empty-icon">📋</p>
-          <p>You need at least one template to set up a schedule.</p>
-          <RouterLink to="/profile" class="btn btn-primary">Create a Template</RouterLink>
+          <p>{{ $t('schedule.needTemplate') }}</p>
+          <RouterLink to="/profile" class="btn btn-primary">{{ $t('schedule.createTemplate') }}</RouterLink>
         </div>
 
         <div v-else class="schedule-card card">
@@ -41,18 +41,18 @@
             :class="{ today: isToday(day.key) }"
           >
             <div class="day-label-wrap">
-              <span class="day-short">{{ day.short }}</span>
-              <span v-if="isToday(day.key)" class="today-badge">today</span>
+              <span class="day-short">{{ $t('schedule.days.' + day.key) }}</span>
+              <span v-if="isToday(day.key)" class="today-badge">{{ $t('schedule.today') }}</span>
             </div>
             <select v-model="schedule[day.key]" class="day-select">
-              <option value="">— Rest day —</option>
+              <option value="">{{ $t('schedule.restDay') }}</option>
               <option v-for="t in templates" :key="t.id" :value="t.id">{{ t.name }}</option>
             </select>
             <button
               v-if="schedule[day.key]"
               class="btn-clear"
               @click="schedule[day.key] = ''"
-              title="Clear day"
+              :title="$t('schedule.clearDay')"
             >✕</button>
             <div v-else class="btn-clear-spacer" />
           </div>
@@ -60,13 +60,13 @@
 
         <div class="footer">
           <p v-if="saveError" class="error-msg">⚠ {{ saveError }}</p>
-          <p v-else-if="saved" class="saved-msg">Schedule saved!</p>
+          <p v-else-if="saved" class="saved-msg">{{ $t('schedule.saved') }}</p>
           <button
             class="btn btn-primary save-btn"
             :disabled="saving || templates.length === 0"
             @click="saveSchedule"
           >
-            {{ saving ? 'Saving…' : 'Save Schedule' }}
+            {{ saving ? $t('schedule.saving') : $t('schedule.save') }}
           </button>
         </div>
       </template>
@@ -76,9 +76,12 @@
 
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/auth'
 import type { Database } from '@/types/database'
+
+const { t } = useI18n({ useScope: 'global' })
 
 type WorkoutTemplate = Database['public']['Tables']['workout_templates']['Row']
 
@@ -125,7 +128,7 @@ async function saveSchedule() {
     saved.value = true
     setTimeout(() => { saved.value = false }, 2500)
   } catch (e: unknown) {
-    saveError.value = e instanceof Error ? e.message : 'Failed to save — check Supabase migration 002'
+    saveError.value = e instanceof Error ? e.message : t('schedule.saveFailed')
   } finally {
     saving.value = false
   }
@@ -133,16 +136,16 @@ async function saveSchedule() {
 
 onMounted(async () => {
   if (!auth.user) return
-  const [{ data: p, error: pErr }, { data: t, error: tErr }] = await Promise.all([
+  const [{ data: p, error: pErr }, { data: tmpl, error: tErr }] = await Promise.all([
     supabase.from('profiles').select('weekly_schedule').eq('id', auth.user.id).single(),
     supabase.from('workout_templates').select('*').eq('user_id', auth.user.id).order('created_at'),
   ])
 
   if (pErr || tErr) {
-    loadError.value = (pErr ?? tErr)?.message ?? 'Failed to load — run migration 002_weekly_schedule.sql in Supabase'
+    loadError.value = (pErr ?? tErr)?.message ?? t('schedule.loadFailed')
   }
 
-  templates.value = t ?? []
+  templates.value = tmpl ?? []
 
   const ws = ((p as { weekly_schedule?: Record<string, string> } | null)?.weekly_schedule ?? {})
   for (const key of DAY_KEYS) {

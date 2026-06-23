@@ -293,5 +293,6 @@ export default {
     'home-legs': 'Hjemme bein',
     'home-core': 'Hjemme kjerne',
     'home-full': 'Calisthenics helkropp',
+    'running-intervals': 'Intervalløp',
   },
 }

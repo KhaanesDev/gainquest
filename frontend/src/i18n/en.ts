@@ -293,5 +293,6 @@ export default {
     'home-legs': 'Home Legs',
     'home-core': 'Home Core',
     'home-full': 'Calisthenics Full Body',
+    'running-intervals': 'Interval Run',
   },
 }

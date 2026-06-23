@@ -212,4 +212,17 @@ export const WORKOUT_CATEGORIES: WorkoutCategory[] = [
       { name: 'Burpee',           sets: 3, defaultReps: 12 },
     ],
   },
+  {
+    id: 'running-intervals',
+    name: 'Interval Run',
+    color: '#0ea5e9',
+    muscles: ['quads', 'hamstrings', 'glutes', 'calves'],
+    home: true,
+    exercises: [
+      { name: 'Warm-up Jog',     sets: 1, defaultReps: 0, type: 'timer', defaultDuration: 300 },
+      { name: 'Sprint Interval', sets: 6, defaultReps: 0, type: 'timer', defaultDuration: 30 },
+      { name: 'Recovery Jog',    sets: 6, defaultReps: 0, type: 'timer', defaultDuration: 90 },
+      { name: 'Cool-down Walk',  sets: 1, defaultReps: 0, type: 'timer', defaultDuration: 300 },
+    ],
+  },
 ]

@@ -127,10 +127,11 @@ async function fetchByTarget(target: string, limit = 20): Promise<Exercise[]> {
   return data
 }
 
-// Equipment that doesn't require a gym (bodyweight + minimal home gear).
+// Equipment that doesn't require a gym (bodyweight + common home gear).
 const NO_GYM_EQUIPMENT = new Set([
   'body weight', 'band', 'resistance band',
-  'stability ball', 'medicine ball', 'bosu ball', 'wheel roller', 'rope',
+  'dumbbell', 'kettlebell',
+  'medicine ball', 'stability ball',
 ])
 const isNoGym = (ex: Exercise) => NO_GYM_EQUIPMENT.has((ex.equipment ?? '').toLowerCase())
 // When the user has no gym access, keep only no-gym exercises.

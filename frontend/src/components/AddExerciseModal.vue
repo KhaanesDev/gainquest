@@ -67,6 +67,7 @@
               <button class="retry" @click="load">{{ $t('exercise.retry') }}</button>
             </div>
             <template v-else-if="selected.length > 0">
+              <div v-if="exercises.length === 0" class="state muted">{{ $t('explore.noneFound') }}</div>
               <div
                 v-for="ex in exercises"
                 :key="ex.id"

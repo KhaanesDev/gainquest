@@ -165,6 +165,7 @@ export default {
     selectGroups: 'Velg muskelgrupper til venstre for å se øvelser.',
     loadingExercises: 'Laster øvelser…',
     exercisesFound: '{n} øvelser funnet',
+    noneFound: 'Fant ingen øvelser for denne muskelgruppen med utstyret ditt.',
     watch: 'Se',
     add: '+ Legg til',
     added: '✓ Lagt til',

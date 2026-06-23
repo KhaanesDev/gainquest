@@ -165,6 +165,7 @@ export default {
     selectGroups: 'Select muscle groups on the left to see exercises.',
     loadingExercises: 'Loading exercises…',
     exercisesFound: '{n} exercises found',
+    noneFound: 'No exercises found for this muscle group with your current equipment.',
     watch: 'Watch',
     add: '+ Add',
     added: '✓ Added',

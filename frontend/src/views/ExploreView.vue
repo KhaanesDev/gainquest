@@ -75,6 +75,11 @@
             <button class="btn btn-secondary" @click="load">{{ $t('explore.retry') }}</button>
           </div>
 
+          <div v-else-if="exercises.length === 0" class="empty-state">
+            <p class="empty-icon">🤷</p>
+            <p>{{ $t('explore.noneFound') }}</p>
+          </div>
+
           <template v-else>
             <p class="results-count">{{ $t('explore.exercisesFound', { n: exercises.length }) }}</p>
             <div class="exercise-grid">

@@ -7,6 +7,9 @@ export interface TemplateExercise {
   defaultReps: number
   type?: 'reps' | 'timer'
   defaultDuration?: number
+  // Starting weight (kg) and progressive-overload step added each session.
+  defaultWeight?: number
+  weightStep?: number
 }
 
 export type GenericRelationship = {

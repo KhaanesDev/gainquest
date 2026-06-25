@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from './auth'
 import { getLastWeight, saveWorkoutWeights } from '@/composables/useLastWeights'
@@ -31,8 +31,8 @@ export interface WorkoutReward {
   musclesTrained: string[]
 }
 
-let _id = 0
-function uid() { return `tmp-${++_id}` }
+// Random so ids never collide with a workout restored from localStorage.
+function uid() { return `ex-${Math.random().toString(36).slice(2, 10)}` }
 
 function calcSetXP(set: WorkoutSet, exType: 'reps' | 'timer'): number {
   if (!set.completed) return 0
@@ -77,6 +77,9 @@ export const useWorkoutStore = defineStore('workout', () => {
   // XP earned by the last completed workout, consumed by the dashboard to
   // animate the XP bar filling. Survives the navigation to /dashboard.
   const pendingXpGain = ref(0)
+
+  // Shared rest length (seconds) chosen up front, used between every set.
+  const restSeconds = ref(60)
   const completedSetCount = computed(() =>
     exercises.value.flatMap(e => e.sets).filter(s => s.completed).length
   )
@@ -101,6 +104,16 @@ export const useWorkoutStore = defineStore('workout', () => {
     startedAt.value = null
     exercises.value = templateExercises.map(ex => {
       const warmup = ex.warmupSets ?? 0
+      // Progressive overload: build on what you actually lifted last time and
+      // add the step; first time ever, fall back to the template's weight.
+      let weight: number | null = null
+      if (ex.type !== 'timer') {
+        const step = Number(ex.weightStep) || 0
+        const dflt = Number(ex.defaultWeight)
+        const last = getLastWeight(ex.name)
+        if (last != null) weight = Math.round((last + step) * 10) / 10
+        else weight = Number.isFinite(dflt) && dflt > 0 ? dflt : null
+      }
       return {
         id: uid(),
         name: ex.name,
@@ -108,7 +121,7 @@ export const useWorkoutStore = defineStore('workout', () => {
         sets: Array.from({ length: ex.sets }, (_, i) => makeSet(
           i < warmup ? 'warmup' : 'working',
           ex.type === 'timer' ? null : ex.defaultReps,
-          ex.type === 'timer' ? null : getLastWeight(ex.name),
+          weight,
           ex.defaultDuration ?? 60,
         )),
       }
@@ -335,8 +348,43 @@ export const useWorkoutStore = defineStore('workout', () => {
     return g
   }
 
+  // ── Persist the active workout so a refresh (e.g. pull-to-refresh on mobile)
+  //    never loses an in-progress session. ──────────────────────────────────
+  const STORAGE_KEY = 'gq-active-workout'
+
+  function hydrate() {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    if (!raw) return
+    try {
+      const data = JSON.parse(raw)
+      if (!data?.exercises) return
+      workoutName.value = data.workoutName ?? 'My Workout'
+      startedAt.value = data.startedAt ? new Date(data.startedAt) : null
+      exercises.value = data.exercises
+      if (typeof data.restSeconds === 'number') restSeconds.value = data.restSeconds
+      isActive.value = true
+    } catch {
+      localStorage.removeItem(STORAGE_KEY)
+    }
+  }
+
+  hydrate()
+
+  watch([isActive, workoutName, startedAt, exercises, restSeconds], () => {
+    if (!isActive.value) {
+      localStorage.removeItem(STORAGE_KEY)
+      return
+    }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      workoutName: workoutName.value,
+      startedAt: startedAt.value ? startedAt.value.toISOString() : null,
+      exercises: exercises.value,
+      restSeconds: restSeconds.value,
+    }))
+  }, { deep: true })
+
   return {
-    isActive, workoutName, startedAt, exercises, saving,
+    isActive, workoutName, startedAt, exercises, saving, restSeconds,
     xpPreview, completedSetCount,
     start, markStarted, loadFromTemplate, loadFromTemplateId, addExercise, removeExercise, addSet, removeSet, toggleSet, bulkAdjustSets, bulkAdjustWeight, bulkSetTemplate, complete, discard, consumePendingXpGain,
   }

@@ -42,41 +42,39 @@
             :placeholder="$t('profile.templateNamePlaceholder')"
           />
 
-          <div class="ex-header">
-            <span>{{ $t('profile.exercise') }}</span>
-            <span>{{ $t('profile.sets') }}</span>
-            <span>{{ $t('profile.repsDuration') }}</span>
-            <span></span>
-          </div>
-
-          <div v-for="(ex, i) in editor.exercises" :key="ex.id" class="ex-row">
-            <input v-model="ex.name" class="ex-name-input" :placeholder="$t('profile.exercisePlaceholder', { n: i + 1 })" />
-            <input
-              v-model.number="ex.sets"
-              type="number" min="1" max="20"
-              class="ex-num-input"
-            />
-            <div class="ex-rep-cell">
-              <input
-                v-if="ex.type === 'reps'"
-                v-model.number="ex.defaultReps"
-                type="number" min="1" max="100"
-                class="ex-num-input"
-              />
-              <input
-                v-else
-                :value="formatDuration(ex.defaultDuration)"
-                class="ex-num-input duration"
-                @change="e => onDurationChange(ex, e)"
-              />
+          <div v-for="(ex, i) in editor.exercises" :key="ex.id" class="ex-item">
+            <div class="ex-top">
+              <input v-model="ex.name" class="ex-name-input" :placeholder="$t('profile.exercisePlaceholder', { n: i + 1 })" />
               <button
                 class="type-toggle"
                 :class="ex.type"
                 @click="ex.type = ex.type === 'reps' ? 'timer' : 'reps'"
                 :title="ex.type === 'reps' ? $t('profile.switchToTimer') : $t('profile.switchToReps')"
               >{{ ex.type === 'reps' ? 'R' : 'T' }}</button>
+              <button class="btn-remove-ex" @click="editor.exercises.splice(i, 1)">✕</button>
             </div>
-            <button class="btn-remove-ex" @click="editor.exercises.splice(i, 1)">✕</button>
+            <div class="ex-fields">
+              <label class="fld">
+                <span>{{ $t('profile.sets') }}</span>
+                <input v-model.number="ex.sets" type="number" min="1" max="20" class="ex-num-input" />
+              </label>
+              <label v-if="ex.type === 'reps'" class="fld">
+                <span>{{ $t('profile.reps') }}</span>
+                <input v-model.number="ex.defaultReps" type="number" min="1" max="100" class="ex-num-input" />
+              </label>
+              <label v-else class="fld">
+                <span>{{ $t('profile.duration') }}</span>
+                <input :value="formatDuration(ex.defaultDuration)" class="ex-num-input duration" @change="e => onDurationChange(ex, e)" />
+              </label>
+              <label v-if="ex.type === 'reps'" class="fld">
+                <span>{{ $t('profile.kg') }}</span>
+                <input v-model.number="ex.defaultWeight" type="number" min="0" step="any" class="ex-num-input" placeholder="—" />
+              </label>
+              <label v-if="ex.type === 'reps'" class="fld" :title="$t('profile.progressionHint')">
+                <span>{{ $t('profile.progression') }}</span>
+                <input v-model.number="ex.weightStep" type="number" min="0" step="any" class="ex-num-input" placeholder="0" />
+              </label>
+            </div>
           </div>
 
           <button class="btn-add-ex" @click="showAddExercise = true">{{ $t('profile.addExercise') }}</button>
@@ -201,6 +199,8 @@ interface EditorExercise {
   defaultReps: number
   type: 'reps' | 'timer'
   defaultDuration: number
+  defaultWeight?: number
+  weightStep?: number
 }
 
 interface Editor {
@@ -235,7 +235,7 @@ let _eid = 0
 function uid() { return `e-${++_eid}` }
 
 function newEditorExercise(): EditorExercise {
-  return { id: uid(), name: '', sets: 3, defaultReps: 10, type: 'reps', defaultDuration: 60 }
+  return { id: uid(), name: '', sets: 3, defaultReps: 10, type: 'reps', defaultDuration: 60, weightStep: 0 }
 }
 
 function startNew() {
@@ -253,6 +253,8 @@ function startEdit(t: WorkoutTemplate) {
       defaultReps: e.defaultReps ?? 10,
       type: (e.type ?? 'reps') as 'reps' | 'timer',
       defaultDuration: e.defaultDuration ?? 60,
+      defaultWeight: e.defaultWeight,
+      weightStep: e.weightStep ?? 0,
     })),
   }
 }
@@ -549,23 +551,26 @@ onMounted(async () => {
 .editor-name-input:focus { border-color: var(--color-primary); }
 .editor-name-input::placeholder { font-weight: 400; color: var(--color-text-muted); }
 
-.ex-header {
-  display: grid;
-  grid-template-columns: 1fr 48px 1fr 28px;
+.ex-item {
+  display: flex;
+  flex-direction: column;
   gap: 8px;
-  padding: 0 2px;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--color-text-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
 }
 
-.ex-row {
-  display: grid;
-  grid-template-columns: 1fr 48px 1fr 28px;
-  gap: 8px;
-  align-items: center;
+.ex-top { display: flex; align-items: center; gap: 8px; }
+.ex-top .ex-name-input { flex: 1; }
+
+.ex-fields { display: flex; flex-wrap: wrap; gap: 8px; }
+.fld { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 56px; }
+.fld > span {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
 }
 
 .ex-name-input {

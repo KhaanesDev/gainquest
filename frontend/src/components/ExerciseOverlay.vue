@@ -95,72 +95,30 @@
               <button class="btn-check" :class="{ active: set.completed }" @click="onToggleSet(set, i)">✓</button>
             </div>
 
-            <!-- Rest row (auto-shows after set is done, or when configured) -->
-            <div
-              v-if="set.restAfterSeconds && i < exercise.sets.length - 1"
-              class="rest-row"
-              :class="{ running: restTimers[set.id]?.running, done: restTimers[set.id]?.remaining === 0 }"
-            >
-              <!-- GO! state -->
-              <template v-if="restTimers[set.id]?.remaining === 0">
-                <img src="/arm.png" alt="" class="go-icon" />
-                <span class="go-label">{{ $t('exercise.go') }}</span>
-                <span class="go-sub">{{ $t('exercise.nextSet') }}</span>
-                <button class="rest-remove" @click="removeRest(set)" :title="$t('exercise.dismiss')">✕</button>
-              </template>
-
-              <!-- Normal / running state -->
-              <template v-else>
-                <span class="rest-icon">⏱</span>
-                <button
-                  class="rest-time"
-                  :class="{ 'rest-time--open': restPickerSetId === set.id }"
-                  :disabled="restTimers[set.id]?.running"
-                  @click="restPickerSetId = restPickerSetId === set.id ? null : set.id"
-                >
-                  {{ restTimers[set.id]?.running
-                    ? formatDur(restTimers[set.id].remaining)
-                    : formatRestTime(set.restAfterSeconds) }}
-                </button>
-                <button
-                  v-if="!restTimers[set.id]?.running"
-                  class="rest-action"
-                  @click="startRestTimer(set)"
-                >▶</button>
-                <button v-else class="rest-action stop" @click="stopRestTimer(set.id)">■</button>
-                <button class="rest-remove" @click="removeRest(set)" :title="$t('exercise.removeRest')">✕</button>
-              </template>
-              <div v-if="restPickerSetId === set.id && !restTimers[set.id]?.running" class="rest-picker">
-                <ScrollWheelInput
-                  :modelValue="set.restAfterSeconds"
-                  :customItems="REST_ITEMS"
-                  :formatFn="formatRestTime"
-                  @update:modelValue="onRestPickerChange(set, $event)"
-                />
-              </div>
-            </div>
-
-            <!-- Add rest button between sets -->
-            <div
-              v-else-if="!set.restAfterSeconds && i < exercise.sets.length - 1"
-              class="add-rest-row"
-            >
-              <button class="btn-add-rest" @click="addRest(set)">{{ $t('exercise.addRest') }}</button>
-            </div>
-
           </template>
         </div>
 
-        <!-- Per-exercise done CTA -->
-        <div
-          v-if="exerciseDone"
-          class="complete-cta"
-          :class="{ 'all-done': allDone }"
-          @click="allDone ? emit('complete-workout') : emit('close')"
-        >
-          <span class="cta-icon">{{ allDone ? '🏆' : '✓' }}</span>
-          <span class="cta-label">{{ allDone ? $t('exercise.complete') : $t('exercise.done') }}</span>
-          <span class="cta-arrow">→</span>
+        <!-- Action bar: Done → rest countdown → GO → next set -->
+        <div class="action-bar" :class="{ resting: restRunning, go: restDone }">
+          <template v-if="restRunning">
+            <button class="rest-add" @click="addRestTime(15)">+15s</button>
+            <span class="rest-count">{{ formatDur(restRemaining) }}</span>
+            <button class="rest-skip" @click="endRest">{{ $t('exercise.skip') }}</button>
+          </template>
+          <button v-else-if="restDone" class="action-main go-btn" @click="endRest">
+            <img src="/arm.png" alt="" class="action-arm" />
+            {{ $t('exercise.go') }}
+          </button>
+          <button v-else-if="nextSet" class="action-main done-btn" @click="completeCurrent">
+            {{ $t('exercise.completeSet') }}
+          </button>
+          <button
+            v-else
+            class="action-main complete-btn"
+            @click="allDone ? emit('complete-workout') : emit('close')"
+          >
+            {{ allDone ? '🏆 ' + $t('exercise.complete') : $t('exercise.done') }}
+          </button>
         </div>
 
         <!-- Footer -->
@@ -186,7 +144,6 @@ import { ref, reactive, computed, onBeforeUnmount, useTemplateRef } from 'vue'
 import type { WorkoutExercise, WorkoutSet } from '@/stores/workout'
 import { useWorkoutStore } from '@/stores/workout'
 import ExerciseDemoModal from './ExerciseDemoModal.vue'
-import ScrollWheelInput from './ScrollWheelInput.vue'
 
 const props = defineProps<{ exercise: WorkoutExercise }>()
 const emit = defineEmits<{ close: []; remove: []; 'complete-workout': [] }>()
@@ -258,9 +215,14 @@ function onBadgeClick(set: WorkoutSet) {
   toggleSetType(set)
 }
 
-const exerciseDone = computed(() =>
-  props.exercise.sets.length > 0 && props.exercise.sets.every(s => s.completed)
-)
+// The next set to complete (first uncompleted) — drives the Done button.
+const nextSet = computed(() => props.exercise.sets.find(s => !s.completed) ?? null)
+
+function completeCurrent() {
+  const set = nextSet.value
+  if (!set) return
+  onToggleSet(set, props.exercise.sets.indexOf(set))
+}
 
 const allDone = computed(() =>
   workout.exercises.length > 0 &&
@@ -393,82 +355,44 @@ function onToggleSet(set: WorkoutSet, index: number) {
 
   workout.toggleSet(props.exercise.id, set.id)
 
-  if (completing && set.restAfterSeconds) {
-    startRestTimer(set)
-  }
-
-  // Dismiss the GO! banner from the previous set's rest row
-  if (completing && index > 0) {
-    const prev = props.exercise.sets[index - 1]
-    const prevRest = restTimers[prev.id]
-    if (prevRest && prevRest.remaining === 0) {
-      prevRest.remaining = prev.restAfterSeconds ?? 30
-    }
-  }
+  // Auto-start the shared rest timer when a set is completed — but not after
+  // the last set (no point resting when there's nothing left to do).
+  if (completing && nextSet.value) startRest()
 }
 
-// ── Rest time picker ──────────────────────────────────────────────────────────
-const restPickerSetId = ref<string | null>(null)
+// ── Shared rest timer (one timer reused between every set) ──────────────────────
+const restRemaining = ref(0)
+const restRunning = ref(false)
+const restDone = ref(false)
+let restInterval: ReturnType<typeof setInterval> | undefined
 
-const REST_ITEMS = [
-  5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60,
-  75, 90, 105, 120, 135, 150, 165, 180,
-  210, 240, 270, 300,
-]
-
-function formatRestTime(v: number | null): string {
-  if (!v) return '0s'
-  const m = Math.floor(v / 60)
-  const s = v % 60
-  if (m === 0) return `${s}s`
-  if (s === 0) return `${m}m`
-  return `${m}m ${s}s`
-}
-
-function onRestPickerChange(set: WorkoutSet, val: number | null) {
-  if (!val) return
-  set.restAfterSeconds = val
-  if (restTimers[set.id] && !restTimers[set.id].running) {
-    restTimers[set.id].remaining = val
-  }
-}
-
-// ── Rest timers ───────────────────────────────────────────────────────────────
-const restTimers = reactive<Record<string, { remaining: number; running: boolean }>>({})
-const restIntervals: Record<string, ReturnType<typeof setInterval>> = {}
-
-function addRest(set: WorkoutSet) {
-  set.restAfterSeconds = 30
-  restTimers[set.id] = { remaining: 30, running: false }
-}
-
-function removeRest(set: WorkoutSet) {
-  stopRestTimer(set.id)
-  delete restTimers[set.id]
-  set.restAfterSeconds = null
-}
-
-function startRestTimer(set: WorkoutSet) {
-  if (!set.restAfterSeconds) return
-  if (!restTimers[set.id]) {
-    restTimers[set.id] = { remaining: set.restAfterSeconds, running: false }
-  }
-  const t = restTimers[set.id]
-  if (t.remaining <= 0) t.remaining = set.restAfterSeconds
-  t.running = true
-  restIntervals[set.id] = setInterval(() => {
-    t.remaining--
-    if (t.remaining <= 0) {
-      stopRestTimer(set.id)
-      t.remaining = 0
+function startRest() {
+  clearInterval(restInterval)
+  restDone.value = false
+  restRemaining.value = workout.restSeconds
+  if (restRemaining.value <= 0) { restRunning.value = false; return }
+  restRunning.value = true
+  restInterval = setInterval(() => {
+    restRemaining.value--
+    if (restRemaining.value <= 0) {
+      clearInterval(restInterval)
+      restRunning.value = false
+      restRemaining.value = 0
+      restDone.value = true
       if ('vibrate' in navigator) navigator.vibrate([100, 50, 100])
     }
   }, 1000)
 }
 
-function stopRestTimer(id: string) {
-  if (restIntervals[id]) { clearInterval(restIntervals[id]); delete restIntervals[id] }
-  if (restTimers[id]) restTimers[id].running = false
+function addRestTime(s: number) {
+  restRemaining.value = Math.max(0, restRemaining.value + s)
+}
+
+function endRest() {
+  clearInterval(restInterval)
+  restRunning.value = false
+  restDone.value = false
+  restRemaining.value = 0
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -480,7 +404,7 @@ function formatDur(s: number): string {
 
 onBeforeUnmount(() => {
   Object.values(setIntervals).forEach(clearInterval)
-  Object.values(restIntervals).forEach(clearInterval)
+  clearInterval(restInterval)
   window.removeEventListener('pointermove', onPointerMove)
 })
 </script>
@@ -955,6 +879,64 @@ onBeforeUnmount(() => {
 }
 
 /* Footer */
+/* Action bar (Done → rest countdown → GO) */
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+.action-bar.resting { border-top-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); }
+.action-bar.go {
+  border-top-color: rgba(16,185,129,0.5);
+  background: rgba(16,185,129,0.12);
+  animation: go-pulse 1.1s ease-in-out infinite;
+}
+.action-main {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 14px;
+  border-radius: var(--radius);
+  font-size: 16px; font-weight: 800;
+  font-family: inherit; cursor: pointer;
+  border: none;
+  background: var(--color-primary);
+  color: #fff;
+  transition: opacity 0.15s;
+}
+.action-main:hover { opacity: 0.92; }
+.action-main.go-btn, .action-main.complete-btn { background: var(--color-accent); }
+.action-arm { width: 24px; height: auto; }
+.rest-count {
+  flex: 1;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-xp);
+}
+.rest-add, .rest-skip {
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13px; font-weight: 700;
+  font-family: inherit; cursor: pointer;
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  transition: all 0.15s;
+}
+.rest-add:hover { border-color: var(--color-xp); color: var(--color-xp); }
+.rest-skip {
+  background: rgba(124,58,237,0.12);
+  border-color: rgba(124,58,237,0.3);
+  color: var(--color-primary);
+}
+.rest-skip:hover { background: rgba(124,58,237,0.22); }
+
 .panel-footer {
   display: flex;
   align-items: center;

@@ -62,7 +62,10 @@
         <div class="header-left">
           <input v-model="workout.workoutName" class="workout-name-input" />
           <p class="timer">{{ elapsed }}</p>
-          <div class="pill xp">⚡ {{ workout.xpPreview }} XP</div>
+          <div class="header-pills">
+            <div class="pill xp">⚡ {{ workout.xpPreview }} XP</div>
+            <button class="pill rest-pill" @click="cycleRest" :title="$t('exercise.restLabel')">⏱ {{ restLabel }}</button>
+          </div>
         </div>
         <MuscleDisplay :heatmap="muscleHeatmap" size="sm" />
       </div>
@@ -211,6 +214,7 @@ async function doSaveTemplate(name: string) {
           defaultReps: working?.reps ?? 10,
           type: e.type,
           defaultDuration: working?.durationSeconds ?? 60,
+          defaultWeight: working?.weightKg ?? undefined,
         }
       })
     const { error } = await supabase.from('workout_templates').insert({
@@ -298,6 +302,17 @@ function startFromCategory(cat: WorkoutCategory) {
 
 function startCustom() {
   workout.start(t('workout.customWorkoutName'))
+}
+
+// Rest length chosen up front (cycled by tapping the header chip).
+const REST_PRESETS = [30, 45, 60, 90, 120]
+const restLabel = computed(() => {
+  const s = workout.restSeconds
+  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+})
+function cycleRest() {
+  const i = REST_PRESETS.indexOf(workout.restSeconds)
+  workout.restSeconds = REST_PRESETS[(i + 1) % REST_PRESETS.length]
 }
 
 async function handleComplete() {
@@ -502,6 +517,18 @@ function doDiscard() {
   border-color: rgba(245,158,11,0.3);
   color: var(--color-xp);
 }
+
+.header-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+
+.rest-pill {
+  background: rgba(124,58,237,0.1);
+  border-color: rgba(124,58,237,0.3);
+  color: var(--color-primary);
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.rest-pill:hover { background: rgba(124,58,237,0.2); }
 
 
 .quick-actions {

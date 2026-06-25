@@ -102,7 +102,7 @@
         <div class="action-bar" :class="{ resting: restRunning, go: restDone }">
           <template v-if="restRunning">
             <button class="rest-add" @click="addRestTime(15)">+15s</button>
-            <span class="rest-count">{{ formatDur(restRemaining) }}</span>
+            <span class="rest-count"><span class="rest-glyph">⏳</span>{{ formatDur(restRemaining) }}</span>
             <button class="rest-skip" @click="endRest">{{ $t('exercise.skip') }}</button>
           </template>
           <button v-else-if="restDone" class="action-main go-btn" @click="endRest">
@@ -912,12 +912,22 @@ onBeforeUnmount(() => {
 .action-arm { width: 24px; height: auto; }
 .rest-count {
   flex: 1;
-  text-align: center;
-  font-size: 24px;
-  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 30px;
+  font-weight: 900;
   font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
   color: var(--color-xp);
+  text-shadow: 0 0 16px rgba(245,158,11,0.45);
 }
+.rest-glyph {
+  font-size: 22px;
+  animation: rest-tick 1s steps(1) infinite;
+}
+@keyframes rest-tick { 50% { opacity: 0.4; } }
 .rest-add, .rest-skip {
   flex-shrink: 0;
   padding: 8px 16px;

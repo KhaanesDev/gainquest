@@ -293,7 +293,7 @@ function estTime(exercises: TemplateExercise[]) {
 
 // Show gym categories when the user has gym access, home/calisthenics ones otherwise.
 const visibleCategories = computed(() =>
-  WORKOUT_CATEGORIES.filter(c => (gymAccess.value ? !c.home : !!c.home))
+  WORKOUT_CATEGORIES.filter(c => c.always || (gymAccess.value ? !c.home : !!c.home))
 )
 
 function startFromCategory(cat: WorkoutCategory) {

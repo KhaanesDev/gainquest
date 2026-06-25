@@ -8,6 +8,8 @@ export interface WorkoutCategory {
   exercises: TemplateExercise[]
   // Home / calisthenics category — shown when the user has no gym access.
   home?: boolean
+  // Shown regardless of the gym-access toggle (e.g. running).
+  always?: boolean
 }
 
 export const WORKOUT_CATEGORIES: WorkoutCategory[] = [
@@ -218,6 +220,7 @@ export const WORKOUT_CATEGORIES: WorkoutCategory[] = [
     color: '#0ea5e9',
     muscles: ['quads', 'hamstrings', 'glutes', 'calves'],
     home: true,
+    always: true,
     exercises: [
       { name: 'Warm-up Jog',     sets: 1, defaultReps: 0, type: 'timer', defaultDuration: 300 },
       { name: 'Sprint Interval', sets: 6, defaultReps: 0, type: 'timer', defaultDuration: 30 },

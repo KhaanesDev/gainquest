@@ -28,7 +28,7 @@ export default {
     username: 'Username',
     newPassword: 'New password',
     confirmPassword: 'Confirm password',
-    emailPlaceholder: 'you@example.com',
+    emailPlaceholder: "you{'@'}example.com",
     usernamePlaceholder: 'IronViking99',
     minChars: 'Min 8 characters',
     repeatPassword: 'Repeat password',

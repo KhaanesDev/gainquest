@@ -28,7 +28,7 @@ export default {
     username: 'Brukernavn',
     newPassword: 'Nytt passord',
     confirmPassword: 'Bekreft passord',
-    emailPlaceholder: 'deg@eksempel.no',
+    emailPlaceholder: "deg{'@'}eksempel.no",
     usernamePlaceholder: 'IronViking99',
     minChars: 'Minst 8 tegn',
     repeatPassword: 'Gjenta passord',

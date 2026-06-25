@@ -1,9 +1,10 @@
 import type { WorkoutExercise } from '@/stores/workout'
+import { lsGet, lsSet } from '@/lib/storage'
 
 const KEY = 'gq_weights'
 
 function load(): Record<string, number> {
-  try { return JSON.parse(localStorage.getItem(KEY) ?? '{}') }
+  try { return JSON.parse(lsGet(KEY) ?? '{}') }
   catch { return {} }
 }
 
@@ -17,5 +18,5 @@ export function saveWorkoutWeights(exercises: WorkoutExercise[]) {
     const last = [...ex.sets].reverse().find(s => s.completed && s.weightKg != null)
     if (last?.weightKg) weights[ex.name] = last.weightKg
   }
-  localStorage.setItem(KEY, JSON.stringify(weights))
+  lsSet(KEY, JSON.stringify(weights))
 }

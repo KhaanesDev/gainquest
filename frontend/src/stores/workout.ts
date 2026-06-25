@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from './auth'
 import { getLastWeight, saveWorkoutWeights } from '@/composables/useLastWeights'
+import { lsGet, lsSet, lsRemove } from '@/lib/storage'
 import { getMusclesForExercise } from '@/data/exerciseMuscleMap'
 import type { TemplateExercise } from '@/types/database'
 
@@ -353,7 +354,7 @@ export const useWorkoutStore = defineStore('workout', () => {
   const STORAGE_KEY = 'gq-active-workout'
 
   function hydrate() {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = lsGet(STORAGE_KEY)
     if (!raw) return
     try {
       const data = JSON.parse(raw)
@@ -364,7 +365,7 @@ export const useWorkoutStore = defineStore('workout', () => {
       if (typeof data.restSeconds === 'number') restSeconds.value = data.restSeconds
       isActive.value = true
     } catch {
-      localStorage.removeItem(STORAGE_KEY)
+      lsRemove(STORAGE_KEY)
     }
   }
 
@@ -372,10 +373,10 @@ export const useWorkoutStore = defineStore('workout', () => {
 
   watch([isActive, workoutName, startedAt, exercises, restSeconds], () => {
     if (!isActive.value) {
-      localStorage.removeItem(STORAGE_KEY)
+      lsRemove(STORAGE_KEY)
       return
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    lsSet(STORAGE_KEY, JSON.stringify({
       workoutName: workoutName.value,
       startedAt: startedAt.value ? startedAt.value.toISOString() : null,
       exercises: exercises.value,
